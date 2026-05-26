@@ -224,7 +224,7 @@ YMLValidator/
 
 ## TODO
 
-- Polish changes
+- Polishing changes
 - Add configuration file support for validation rules
 - Provide packaged releases for Windows/macOS/Linux
 - Add smoke integration with real binaries in CI
@@ -237,9 +237,9 @@ YMLValidator/
 
 ## DONE
 
-- Added golden-file integration tests with fixtures in `tests/golden/`
-- Added CI-friendly output
-- Added JSON Schema validation
-- Added Batch-mode + recursive search in provided directory
-- Added coverage metrics with 90% threshold enforced in CI
-- Added corner-case tests: Unicode, BOM, CRLF/LF, tabs and mixed indentation
+- [x] Added golden-file integration tests with fixtures in `tests/golden/`
+- [x] Added CI-friendly output
+- [x] Added JSON Schema validation
+- [x] Added Batch-mode + recursive search in provided directory
+- [x] Added coverage metrics with 90% threshold enforced in CI
+- [x] Added corner-case tests: Unicode, BOM, CRLF/LF, tabs and mixed indentation
