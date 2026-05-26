@@ -1,13 +1,134 @@
-$schema: "http://json-schema.org/draft-07/schema"
+# Draft version of JSON Schema
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://example.com/schemas/github-workflow.schema.yaml"
+title: GitHub Actions Workflow Schema (Demo)
+description: Example schema for validating GitHub Actions workflow files.
+
 type: object
+additionalProperties: false
+
+# Minimal required fields for a valid workflow
 required:
   - name
-  - version
+  - "on"
+  - jobs
+
 properties:
   name:
     type: string
-  version:
-    type: string
-  replicas:
-    type: integer
-    minimum: 1
+    minLength: 3
+    description: Workflow name shown in GitHub Actions UI.
+
+  "on":
+    description: Event trigger definition.
+    oneOf:
+      - type: string
+      - type: array
+        items:
+          type: string
+        minItems: 1
+      - type: object
+        additionalProperties: true
+
+  env:
+    type: object
+    description: Optional global environment variables.
+    additionalProperties:
+      type: string
+
+  jobs:
+    type: object
+    description: Map of job definitions.
+    minProperties: 1
+    additionalProperties:
+      $ref: "#/definitions/job"
+
+definitions:
+  job:
+    type: object
+    additionalProperties: false
+    required:
+      - runs-on
+      - steps
+    properties:
+      name:
+        type: string
+      runs-on:
+        oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+            minItems: 1
+      needs:
+        oneOf:
+          - type: string
+          - type: array
+            items:
+              type: string
+            minItems: 1
+      if:
+        type: string
+      timeout-minutes:
+        type: integer
+        minimum: 1
+      env:
+        type: object
+        additionalProperties:
+          type: string
+      steps:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/definitions/step"
+
+  step:
+    type: object
+    additionalProperties: false
+    properties:
+      name:
+        type: string
+      uses:
+        type: string
+        pattern: "^[^@]+@[^@]+$"
+        description: Action reference, for example actions/checkout@v5.
+      run:
+        type: string
+        minLength: 1
+      shell:
+        type: string
+        enum: [bash, sh, pwsh, python]
+      with:
+        type: object
+        additionalProperties:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+      env:
+        type: object
+        additionalProperties:
+          type: string
+    anyOf:
+      - required: [uses]
+      - required: [run]
+
+examples:
+  - name: CI
+    "on":
+      push:
+        branches: [main]
+      pull_request:
+        branches: [main]
+    jobs:
+      lint:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Run linter
+            run: echo lint ok
+      test:
+        runs-on: ubuntu-latest
+        needs: lint
+        steps:
+          - name: Run tests
+            run: echo tests ok

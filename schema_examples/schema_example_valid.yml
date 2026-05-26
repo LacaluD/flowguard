@@ -1,0 +1,20 @@
+name: CI Demo
+
+"on":
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run linter
+        run: echo "lint ok"
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Run tests
+        run: echo "tests ok"

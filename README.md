@@ -99,8 +99,19 @@ python main.py --yml-files . --exec-dir /path/to/tools
 
 Run schema-based validation:
 ```bash
-python main.py --yml-files test.yml --schema schema_examples/example_schema.json
+python main.py --yml-files schema_examples/schema_example_valid.yml --schema schema_examples/schema_example.json
 ```
+
+### How to write your own schema
+See [Schema Guide](docs/schema-guide.md) for writing your own validation schemas.
+
+### Frequent validator error messages
+
+| Error message (example) | Typical cause | How to fix |
+|------|------|------|
+| `'<path>' is neither a file nor directory` | Wrong value in `--yml-files` (typo, wrong relative path, file moved). | Check path from repository root, then run again: `python main.py --yml-files <existing-file-or-dir>`. |
+| `<file>.yml: Additional properties are not allowed (True was unexpected) at []` | In YAML, unquoted `on:` can be parsed as boolean `true` by PyYAML. | Quote the key in configs and schemas: `"on":` instead of `on:`. |
+| `<file>.yml uses deprecated action 'checkout@v4'` | Workflow references deprecated action version from the project deny-list. | Replace with supported version, for example `actions/checkout@v5`, then rerun validation. |
 
 ## Logging
 The project uses Python built-in `logging` with both console and rotating file output.
@@ -211,12 +222,24 @@ YMLValidator/
 	...
 ```
 
-## DONE
-- Added golden-file integration tests with fixtures in `tests/golden/`
-- Added `--update-golden` pytest option to refresh expected snapshots
-- Added edge-case test coverage (Unicode, BOM, CRLF/LF, tabs, mixed indentation)
-
 ## TODO
+
+- Polish changes
 - Add configuration file support for validation rules
 - Provide packaged releases for Windows/macOS/Linux
 - Add smoke integration with real binaries in CI
+
+## Nice to have
+
+- Watch-mode
+- Mutation testing via mutmut
+- Smoke integration with real binaries in CI
+
+## DONE
+
+- Added golden-file integration tests with fixtures in `tests/golden/`
+- Added CI-friendly output
+- Added JSON Schema validation
+- Added Batch-mode + recursive search in provided directory
+- Added coverage metrics with 90% threshold enforced in CI
+- Added corner-case tests: Unicode, BOM, CRLF/LF, tabs and mixed indentation
