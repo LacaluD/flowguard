@@ -1,73 +1,222 @@
 # Project Goal
-This is a console tool for validating yml configs.
-Project is created to help developers validate and create schemas of their yml configs.
 
----
+[![CI](https://img.shields.io/github/actions/workflow/status/LacaluD/YML-Validator-Scheme-converter/security_audit.yml?branch=main&label=CI)](https://github.com/LacaluD/YML-Validator-Scheme-converter/actions/workflows/security_audit.yml)
+[![Coverage](https://codecov.io/gh/LacaluD/YML-Validator-Scheme-converter/graph/badge.svg?branch=main)](https://codecov.io/gh/LacaluD/YML-Validator-Scheme-converter)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+
+YMLValidator is a command-line tool that validates YAML configuration files and builds visual pipeline diagrams.
+It helps teams catch broken workflow files early and quickly understand pipeline structure.
+
+## Demo
+
+![YMLValidator demo](docs/assets/demo.gif)
 
 ## Features
-Under the hood project is running 2 third-party projects:
-[YML2DOT](https://github.com/lucasepe/yml2dot) and [YQ](https://github.com/mikefarah/yq)
+The project uses [yq](https://github.com/mikefarah/yq) for parsing/validation and [yml2dot](https://github.com/lucasepe/yml2dot) + Graphviz `dot` for diagram generation.
 
-- Basic YAML syntax validation via yq
-- Custom checks for required fields (extensible)
-- Detection of deprecated actions
-- Indentation and formatting checks
-- Generate DOT scheme diagrams via yml2dot
-
-Project was tested on python3.17 for now only on Windows 10.
-Cross-platform support for macOS and Ubuntu Linux will be added later.
-
----
+- Validate one YAML file or all YAML files inside a directory (recursive search)
+- Run base YAML syntax checks through `yq`
+- Run configurable required-field checks (for example `.jobs.*.steps`)
+- Detect deprecated GitHub Actions references
+- Validate indentation and whitespace formatting rules
+- Generate `.png` diagrams from validated YAML files
+- Search external binaries automatically and optionally recurse through a custom folder
 
 ## Dependencies
-Project does not use any side Python third-party libraries.
-However external tools `yq` and `yml2dot` are required.
+Python dependencies:
 
----
+- Python 3.10+
+- `PyYAML` (YAML parsing)
+- `jsonschema` (schema-based validation)
+
+External CLI tools:
+
+- `yq` (required)
+- `yml2dot` (required)
+- `dot` from Graphviz (required for PNG output)
 
 ## Installation
-Clone the repository
-```
-git clone https://github.com/LacaluD/YML-Validator-Scheme-converter
-```
-
-Create a virtual environment (optional but recommended)
+### 1. Clone repository
 ```bash
-python -m venv venv
-source venv/bin/activate
+git clone https://github.com/LacaluD/YML-Validator-Scheme-converter.git
+cd YML-Validator-Scheme-converter
 ```
 
-### On Windows
-```PowerShell
-venv\Scripts\activate
+### 2. Create and activate virtual environment
+macOS/Linux:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-Currently there is no automated run script.
-See TODO block for usage instructions.
+Windows (PowerShell):
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
 
----
+### 3. Install Python dependencies
+```bash
+pip install -r requirements.txt
+# or
+pip install ".[dev]"
+```
+
+### 4. Install external binaries
+macOS (Homebrew):
+```bash
+brew install yq graphviz
+```
+
+Ubuntu/Debian:
+```bash
+sudo apt update
+sudo apt install -y yq graphviz
+```
+
+Windows:
+
+1. Install `yq` from the official release page or package manager.
+2. Install [Graphviz](https://graphviz.org/download/).
+3. Install [yml2dot](https://github.com/lucasepe/yml2dot/releases) and ensure `yq`, `yml2dot`, and `dot` are available in `PATH`.
+
+### 5. Run tool
+Validate one file:
+```bash
+python main.py --yml-files test.yml
+```
+
+Validate all YAML files in directory:
+```bash
+python main.py --yml-files .
+```
+
+Run with additional recursive binary lookup:
+```bash
+python main.py --yml-files . --exec-dir /path/to/tools
+```
+
+Run schema-based validation:
+```bash
+python main.py --yml-files test.yml --schema schema_examples/example_schema.json
+```
+
+## Logging
+The project uses Python built-in `logging` with both console and rotating file output.
+
+Default behavior:
+
+- `INFO`/`DEBUG` logs are written to `stdout`
+- `WARNING`/`ERROR`/`CRITICAL` logs are written to `stderr`
+- With `--quiet`, normal informational console output is suppressed
+- File logs are written to `logs/main.log`
+- File rotation is enabled via `TimedRotatingFileHandler`
+
+Examples:
+
+macOS/Linux:
+```bash
+export LOG_LEVEL=DEBUG
+export LOG_FILE_LEVEL=INFO
+export LOG_DIR=./logs
+export LOG_FILE_NAME=validator.log
+python main.py --yml-files test.yml
+```
+
+Windows PowerShell:
+```powershell
+$env:LOG_LEVEL = "DEBUG"
+$env:LOG_FILE_LEVEL = "INFO"
+$env:LOG_DIR = ".\\logs"
+$env:LOG_FILE_NAME = "validator.log"
+python main.py --yml-files test.yml
+```
+
+## Testing
+The project test suite is based on `pytest` and covers both business logic and CLI behavior.
+
+Current test coverage includes:
+
+- Unit tests for core validators and utility functions
+- Integration tests for the main validation pipeline with mocked external binaries
+- Schema-validation tests for valid/invalid schemas and YAML files
+- Corner-case tests: Unicode, BOM, CRLF/LF, tabs, mixed indentation, empty values, deeply nested YAML
+- CLI output stream checks using `capsys` (`stdout` vs `stderr`)
+
+### Edge Cases
+
+The validator is tested against real-world YAML quirks:
+
+| Case | Behavior |
+|------|----------|
+| UTF-8 Unicode (Cyrillic, Japanese, etc.) | ✅ Supported |
+| BOM (Byte Order Mark) | ✅ Supported |
+| CRLF line endings (Windows) | ✅ Supported |
+| Tabs instead of spaces | ❌ Rejected (invalid YAML) |
+| Mixed indentation | ❌ Rejected (invalid YAML) |
+| Empty values (`null`, blank) | ✅ Supported |
+| Deeply nested structures (50+ levels) | ✅ Supported |
+
+Run tests locally:
+```bash
+python -m pytest -q -c configs/pytest.ini
+```
+
+Run tests with coverage:
+```bash
+python -m coverage run -m pytest -q -c configs/pytest.ini
+python -m coverage report --fail-under=90
+```
+
+Run golden-file checks:
+```bash
+python -m pytest -q tests/test_golden.py -c configs/pytest.ini
+```
+
+Update golden baselines:
+```bash
+python -m pytest -q tests/test_golden.py -c configs/pytest.ini --update-golden
+```
+
+CI notes:
+
+- Test job runs on each push/PR to `main`
+- Coverage threshold is configured as `90%` in project coverage settings
+- Coverage report is uploaded as a CI artifact
 
 ## Project Structure
 ```text
-YML_Validator_Schemes/
-│
-├─ src/                       # Core logic and modules
-│  ├─ logic.py                # Main logic
-│  ├─ platform_check.py       # Corr-platform executable search
-│  └─ constants.py            # Constants storage
-│
-├─ tests/                       # Unit tests (planned)
-│
-├─ main.py                    # entry point
+YMLValidator/
+├─ .github/                  # CI workflows
+├─ configs/
+│  ├─ pytest.ini             # Pytest configuration
+│  └─ bandit.yml             # Bandit configuration
+├─ main.py                  # CLI entry point
+├─ pyproject.toml            # Project metadata and tooling config
 ├─ README.md
-└─ gitignore
+├─ TODO.md                  # Roadmap notes
+├─ schema_examples/         # Example JSON schemas
+├─ src/
+│  ├─ cli_parser.py            # CLI argument parser
+│  ├─ constants.py             # Validation constants/config values
+│  ├─ logger.py                # Project logging setup
+│  ├─ main_validation_logic.py # YAML validation + diagram generation
+│  ├─ platform_checks.py       # Cross-platform executable discovery
+│  ├─ utils.py                 # Shared file collection and file checks
+│  └─ validation_by_schema.py  # JSON Schema validation pipeline
+└─ tests/
+	├─ conftest.py              # Custom pytest flags (including --update-golden)
+	└─ golden/                  # Golden-file inputs/expected outputs
+	...
 ```
 
----
+## DONE
+- Added golden-file integration tests with fixtures in `tests/golden/`
+- Added `--update-golden` pytest option to refresh expected snapshots
+- Added edge-case test coverage (Unicode, BOM, CRLF/LF, tabs, mixed indentation)
 
 ## TODO
-- Change all prints to logging methods with separate logic
-- Separate logic by classes
-- Optimize
-<!-- Скорее всего будет простой запрос в консоли для того,
-чтоб можно было легко задать местоположение нужного конфиг файла -->
+- Add configuration file support for validation rules
+- Provide packaged releases for Windows/macOS/Linux
+- Add smoke integration with real binaries in CI

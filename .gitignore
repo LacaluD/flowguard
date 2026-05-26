@@ -34,8 +34,11 @@ develop-eggs/
 # Project-specific
 TODO.md
 PROJECT_GOAL.md
-PROJECT_STRUCTURE.md
-test*
+*_cache
+_test*
+logs/
+TEMP/
+*coverage*
 
 # Other
 cython_debug/

@@ -1,11 +1,13 @@
-"""Constant Storage"""
+"""Project-wide constants for YAML validation rules and default locations.
 
-DIRECTORY = r"C:\\Progs\\yml2dot"
-YQ_DIR = r"C:\\Progs\\yq\\yq-4.48.2\\yq.exe"
-YML2_DOT_DIR = r"C:\\Progs\\yml2dot\\yml2dot.exe"
+This module keeps static values in one place to avoid duplication and to make
+future configuration extraction straightforward.
+"""
 
-INDENT_SIZE = 2
-EXTENDED_CHECKS = [
+from typing import Final
+
+INDENT_SIZE: Final[int] = 2
+EXTENDED_CHECKS: Final[list[str]] = [
     ".name",
     ".jobs",
     ".on",
@@ -13,4 +15,5 @@ EXTENDED_CHECKS = [
     ".jobs.*.runs-on"
 ]
 
-DEPRECATED_ACTIONS = ["setup-python@v3", "checkout@v4", "telegram-action@v1"]
+DEPRECATED_ACTIONS: Final[list[str]] = [
+    "setup-python@v3", "checkout@v4", "telegram-action@v1"]

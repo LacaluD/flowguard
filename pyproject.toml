@@ -1,0 +1,23 @@
+[project]
+dependencies = [
+    "jsonschema>=4.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "coverage", "ruff", "black", "mypy", "bandit", "safety"]
+
+[tool.ruff.lint]
+select = ["TID252"]  # Forbids relative imports
+
+[tool.coverage.run]
+source = ["src", "main.py"]
+omit = [
+    "tests/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_empty = true
