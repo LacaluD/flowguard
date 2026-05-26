@@ -35,21 +35,21 @@ jobs:
         shell: bash
         continue-on-error: false
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
-          verbose: true
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v5
+      #   with:
+      #     files: ./coverage.xml
+      #     fail_ci_if_error: false
+      #     verbose: true
 
-      - name: Upload Coverage report artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage-report
-          path: |
-            docs/coverage-report.txt
-            coverage.json
-            coverage.xml
+      # - name: Upload Coverage report artifact
+      #   uses: actions/upload-artifact@v7
+      #   with:
+      #     name: coverage-report
+      #     path: |
+      #       docs/coverage-report.txt
+      #       coverage.json
+      #       coverage.xml
 
 
   security-audit:
