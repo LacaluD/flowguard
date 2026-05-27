@@ -1,14 +1,11 @@
 """"""
 
 
+from src.logger import log_exception_short
+from pathlib import Path
 import sys
 import logging
 logger = logging.getLogger(__name__)
-
-import sys
-from pathlib import Path
-
-from src.logger import log_exception_short
 
 
 def _collect_yaml_files(yml_directory: Path) -> list[Path]:
@@ -71,3 +68,5 @@ def count_timeout(fpath: Path, tool: str) -> int | None:
             return 20
         else:
             return 40
+
+    return None

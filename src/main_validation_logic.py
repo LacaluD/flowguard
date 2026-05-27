@@ -4,16 +4,15 @@ Runs basic + extensible checks and indentation validation.
 Add this file to .gitignore if using locally.
 """
 
+from src.constants import INDENT_SIZE, EXTENDED_CHECKS, DEPRECATED_ACTIONS
+from src.utils import _collect_yaml_files, check_for_empty_file, count_timeout
+from src.dot_schemas import build_dot_scheme
+from src.logger import log_exception_short
 import subprocess
 from pathlib import Path
 
 import logging
 logger = logging.getLogger(__name__)
-
-from src.logger import log_exception_short
-from src.dot_schemas import build_dot_scheme
-from src.utils import _collect_yaml_files, check_for_empty_file, count_timeout
-from src.constants import INDENT_SIZE, EXTENDED_CHECKS, DEPRECATED_ACTIONS
 
 
 def check_for_deprecated_keys(file_path: Path, content: str) -> int:
@@ -24,7 +23,8 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
 
     for deprecated in DEPRECATED_ACTIONS:
         if deprecated in content:
-            logger.warning("%s uses deprecated action '%s'", file_path, deprecated)
+            logger.warning("%s uses deprecated action '%s'",
+                           file_path, deprecated)
             issues += 1
 
     return issues
@@ -91,7 +91,8 @@ def check_indentation(file_path: Path) -> int:
                 continue
 
             if "\t" in indent:
-                logger.warning("%s: line %d tab used (use spaces)", file_path, i)
+                logger.warning(
+                    "%s: line %d tab used (use spaces)", file_path, i)
                 continue
 
             if indent and (len(indent) % INDENT_SIZE != 0):
@@ -151,10 +152,6 @@ def validate_config(yml_path: Path, yq_exec: Path) -> TypeError | int:
                 yq_exec=yq_exec,
             )
 
-            if total_errors is None:
-                logger.error(f"Error happened while running yq task!")
-                return 1
-
         total_errors += check_for_deprecated_keys(file_path, content)
 
         total_errors += check_indentation(file_path)
@@ -193,7 +190,8 @@ def regular_validation(yml_files: Path, yq_exe: Path, yml2dot_exe: Path) -> int:
         yml2dot_exec=yml2dot_exe,
     )
     if output_file is not None:
-        logger.info(f"Successfully built dot schema, check results: {output_file}")
+        logger.info(
+            f"Successfully built dot schema, check results: {output_file}")
         logger.info("Pipeline finished successfully!")
         return 0
 
