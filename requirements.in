@@ -1,0 +1,12 @@
+jsonschema
+PyYAML
+
+pytest
+coverage
+ruff
+black
+mypy
+bandit
+safety
+attrs
+python-dotenv

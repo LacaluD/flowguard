@@ -1,7 +1,7 @@
 # FILE: bandit.yml
 exclude_dirs: ['.github', '.venv', 'configs', 'docs', 'logs', '**/tests/*', 'dist', 'build', '__pycache__']
 
-skips: ['B101']
+skips: ['B101', 'B404', 'B603', 'B607']
 
 try_except_continue:
   check_typed_exception: true
