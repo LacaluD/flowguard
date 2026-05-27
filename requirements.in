@@ -2,6 +2,7 @@ jsonschema
 PyYAML
 
 pytest
+pytest-cov
 coverage
 ruff
 black

@@ -29,6 +29,7 @@ downloads/
 develop-eggs/
 
 # Logs
+logs/
 *.log
 
 # Project-specific
@@ -36,11 +37,20 @@ TODO.md
 PROJECT_GOAL.md
 *_cache
 _test*
-logs/
 TEMP/
-*coverage*
-*_reports
+
 *_test_*
+
+
+# Reports
+*[._-]reports/
+*[._-]report*
+coverage/
+*coverage*
+htmlcov/
+.mypy_cache/
+.pytest_cache/
+
 
 # Other
 cython_debug/

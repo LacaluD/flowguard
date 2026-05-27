@@ -4,7 +4,7 @@ from pathlib import Path
 from src import main_validation_logic
 
 
-def test_validation_main_integration_success_with_mocked_yq(
+def test_validate_config_integration_success_with_mocked_yq(
     monkeypatch, tmp_path: Path
 ) -> None:
     yml_file = tmp_path / "workflow.yml"
@@ -13,7 +13,7 @@ def test_validation_main_integration_success_with_mocked_yq(
         encoding="utf-8",
     )
 
-    def fake_run(cmd, check, stdout, stderr, text):
+    def fake_run(cmd, check, stdout, stderr, text, timeout):
         expression = cmd[2]
         outputs = {
             ".": "ok\n",
@@ -29,24 +29,24 @@ def test_validation_main_integration_success_with_mocked_yq(
 
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
 
-    result = main_validation_logic.validation_main(tmp_path, Path("yq"))
+    result = main_validation_logic.validate_config(tmp_path, Path("yq"))
 
-    assert result == [yml_file]
+    assert result == 0
 
 
-def test_validation_main_integration_fails_on_yq_parse_error(
+def test_validate_config_integration_fails_on_yq_parse_error(
     monkeypatch, tmp_path: Path
 ) -> None:
     yml_file = tmp_path / "broken.yml"
     yml_file.write_text("name: [\n", encoding="utf-8")
 
-    def fake_run(cmd, check, stdout, stderr, text):
+    def fake_run(cmd, check, stdout, stderr, text, timeout):
         raise subprocess.CalledProcessError(
             returncode=1, cmd=cmd, stderr="yaml parse error"
         )
 
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
 
-    result = main_validation_logic.validation_main(tmp_path, Path("yq"))
+    result = main_validation_logic.validate_config(tmp_path, Path("yq"))
 
-    assert result is None
+    assert result == 1

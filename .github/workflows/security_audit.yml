@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 
 jobs:
   tests:
@@ -79,13 +82,14 @@ jobs:
           SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
           mkdir -p docs
-
+          set -o pipefail
           safety scan --full-report --text --non-interactive \
           --disable-telemetry | tee docs/safety-report.txt
         shell: bash
         continue-on-error: false
 
       - name: Upload Safety report artifact
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: safety-report
@@ -94,6 +98,7 @@ jobs:
       - name: Run Bandit security linter
         run: |
           mkdir -p docs
+          set -o pipefail
           bandit -c configs/bandit.yml -r . -f txt \
           --severity-level high --confidence-level high \
           | tee docs/bandit-report.txt
@@ -101,6 +106,7 @@ jobs:
         continue-on-error: false
 
       - name: Upload Bandit report artifact
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: bandit-report
@@ -128,11 +134,13 @@ jobs:
       - name: Run mypy type checks
         run: |
           mkdir -p docs
-          mypy . --config-file configs/mypy.ini > docs/mypy-report.txt || true
+          set -o pipefail
+          mypy . --config-file configs/mypy.ini 2>&1 | tee docs/mypy-report.txt
         shell: bash
         continue-on-error: false
 
       - name: Upload mypy report artifact
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: mypy-report

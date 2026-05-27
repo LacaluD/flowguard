@@ -4,17 +4,15 @@ Runs basic + extensible checks and indentation validation.
 Add this file to .gitignore if using locally.
 """
 
-import sys
 import subprocess
 from pathlib import Path
-from typing import Sequence
 
 import logging
-
 logger = logging.getLogger(__name__)
 
-from src.utils import _collect_yaml_files, check_for_empty_file
 from src.logger import log_exception_short
+from src.dot_schemas import build_dot_scheme
+from src.utils import _collect_yaml_files, check_for_empty_file, count_timeout
 from src.constants import INDENT_SIZE, EXTENDED_CHECKS, DEPRECATED_ACTIONS
 
 
@@ -35,12 +33,15 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
 def run_yq(fpath: Path, expression: str, description: str, yq_exec: Path) -> int:
     """Run a yq expression against a YAML file and return 0 on success, 1 on error."""
     try:
+        timeout = count_timeout(fpath=fpath, tool="yml2dot")
+
         result = subprocess.run(
             [yq_exec, "eval", expression, str(fpath)],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            timeout=timeout
         )
 
         output = result.stdout.strip()
@@ -52,7 +53,9 @@ def run_yq(fpath: Path, expression: str, description: str, yq_exec: Path) -> int
 
         logger.info("%s: %s OK", fpath, description)
         return 0
-
+    except subprocess.TimeoutExpired:
+        logger.error(f"yq timed out after {timeout}s on file: {fpath}")
+        return 1
     except subprocess.CalledProcessError as e:
         log_exception_short(
             logger,
@@ -105,7 +108,7 @@ def check_indentation(file_path: Path) -> int:
     return errors
 
 
-def validation_main(yml_path: Path, yq_exec: Path) -> list[Path] | None:
+def validate_config(yml_path: Path, yq_exec: Path) -> TypeError | int:
     """Validate YAML files and return validated files, or None on validation failure."""
     if not isinstance(yml_path, Path):
         raise TypeError("yml_directory is not proper Path object")
@@ -116,7 +119,7 @@ def validation_main(yml_path: Path, yq_exec: Path) -> list[Path] | None:
 
     if not yaml_files:
         logger.warning("No YAML files found in '%s'", yml_path)
-        return None
+        return 0
 
     for file_path in yaml_files:
         logger.info("%s", "-" * 60)
@@ -148,6 +151,10 @@ def validation_main(yml_path: Path, yq_exec: Path) -> list[Path] | None:
                 yq_exec=yq_exec,
             )
 
+            if total_errors is None:
+                logger.error(f"Error happened while running yq task!")
+                return 1
+
         total_errors += check_for_deprecated_keys(file_path, content)
 
         total_errors += check_indentation(file_path)
@@ -155,48 +162,39 @@ def validation_main(yml_path: Path, yq_exec: Path) -> list[Path] | None:
     logger.info("%s", "=" * 60)
     if total_errors > 0:
         logger.error("Total errors found: %d", total_errors)
-        return None
+        return 1
 
     logger.info("YAML files are valid")
-    return yaml_files
+    return 0
 
 
-def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | None:
-    """Generate PNG diagrams from validated YAML files and return the last output path."""
-    last_output_file: Path | None = None
+def regular_validation(yml_files: Path, yq_exe: Path, yml2dot_exe: Path) -> int:
+    """Run the non-schema validation pipeline and diagram generation.
 
-    for f in yml_files:
-        f = Path(f)
-        output_file = f.with_suffix(".png")
-        try:
-            yml2dot_proc = subprocess.Popen(
-                [str(yml2dot_exec), str(f)],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            with open(output_file, "wb") as out:
-                subprocess.run(
-                    ["dot", "-Tpng"],
-                    stdin=yml2dot_proc.stdout,
-                    stdout=out,
-                    stderr=subprocess.PIPE,
-                    check=True,
-                )
-            yml2dot_proc.wait()
-            logger.info("%s -> %s generated", f, output_file)
-            last_output_file = output_file
-        except subprocess.CalledProcessError as e:
-            log_exception_short(
-                logger,
-                e,
-                prefix=f"Failed to build diagram for {f}",
-                level="error",
-                limit=1,
-            )
-            if e.stderr:
-                logger.error(
-                    "dot stderr: %s", e.stderr.decode(errors="replace").strip()
-                )
-            return None
+    The pipeline validates YAML content with `yq`-based checks, then builds
+    PNG diagrams for validated inputs.
 
-    return last_output_file
+    Args:
+        yml_files: Path to one YAML file or a directory with YAML files.
+        yq_exe: Path to the `yq` executable.
+        yml2dot_exe: Path to the `yml2dot` executable.
+
+    Returns:
+        0 when validation and diagram generation succeed.
+        1 when validation fails or diagram generation fails.
+    """
+    res = validate_config(yml_path=yml_files, yq_exec=yq_exe)
+    if res != 0:
+        logger.error("Validation failed")
+        return 1
+
+    output_file = build_dot_scheme(
+        yml_files=_collect_yaml_files(yml_files),
+        yml2dot_exec=yml2dot_exe,
+    )
+    if output_file is not None:
+        logger.info(f"Successfully built dot schema, check results: {output_file}")
+        logger.info("Pipeline finished successfully!")
+        return 0
+
+    return 1

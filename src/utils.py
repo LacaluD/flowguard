@@ -1,5 +1,8 @@
-import logging
+""""""
 
+
+import sys
+import logging
 logger = logging.getLogger(__name__)
 
 import sys
@@ -37,3 +40,34 @@ def check_for_empty_file(file_path: Path) -> int:
         )
         return 1
     return 0
+
+
+def count_timeout(fpath: Path, tool: str) -> int | None:
+    """
+        Automaticly count timeout time for provided config files
+
+        Args:
+            fpath - config path
+            exec - for what app is timeout being calculated
+
+        Returns:
+            timeount: int
+    """
+    if not fpath.exists():
+        return None
+
+    fsize_mb = fpath.stat().st_size / (1024 * 1024)
+
+    if tool == "yml2dot":
+        if fsize_mb <= 0.5:
+            return 25
+        elif fsize_mb <= 2.0:
+            return 40
+        else:
+            return 80
+
+    elif tool == "yq":
+        if fsize_mb <= 2.0:
+            return 20
+        else:
+            return 40

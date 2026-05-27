@@ -5,15 +5,18 @@ Schema can be provided in JSON or YAML format. The validator supports
 both a single YAML file path and a directory path (recursive lookup).
 """
 
-from src.utils import _collect_yaml_files, check_for_empty_file
-import yaml
-import jsonschema
+import logging
+logger = logging.getLogger(__name__)
+
 import json
 from typing import Any
 from pathlib import Path
-import logging
 
-logger = logging.getLogger(__name__)
+import yaml
+import jsonschema
+
+from src.utils import _collect_yaml_files, check_for_empty_file
+from src.dot_schemas import build_dot_scheme
 
 
 def _load_schema(schema_file: Path) -> dict[str, Any]:
@@ -95,3 +98,33 @@ def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
     except Exception as exc:
         logger.error("Unexpected error during schema validation: %s", exc)
         return 1
+
+
+def validate_custom_pipeline(yml_files: Path, val_schema: Path, yml2dot_exe: Path) -> int:
+    """Run schema-based validation pipeline and then build diagrams.
+
+    Args:
+        yml_files: Path to one YAML file or directory with YAML files.
+        val_schema: Path to JSON/YAML schema used for validation.
+        yml2dot_exe: Path to the `yml2dot` executable.
+
+    Returns:
+        0 when schema validation and diagram generation succeed.
+        1 when schema validation fails or diagram generation fails.
+    """
+    res = validate_against_schema(yml_path=yml_files, schema_file=val_schema)
+    if res != 0:
+        logger.error("Validation against schema failed!")
+        return 1
+
+    output_file = build_dot_scheme(
+        yml_files=_collect_yaml_files(yml_files),
+        yml2dot_exec=yml2dot_exe,
+    )
+    if output_file is not None:
+        logger.info(f"Successfully built dot schema, check results: {output_file}")
+        logger.info("Pipeline finished successfully!")
+        return 0
+
+    logger.info("Pipeline finished successfully!")
+    return 1

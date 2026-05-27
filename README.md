@@ -200,14 +200,15 @@ CI notes:
 ```text
 YMLValidator/
 ├─ .github/                  # CI workflows
+├─ docs/					 # project documentation
+│
 ├─ configs/
 │  ├─ pytest.ini             # Pytest configuration
+│  ├─ mypy.ini             # Mypy configuration
 │  └─ bandit.yml             # Bandit configuration
-├─ main.py                  # CLI entry point
-├─ pyproject.toml            # Project metadata and tooling config
-├─ README.md
-├─ TODO.md                  # Roadmap notes
+│
 ├─ schema_examples/         # Example JSON schemas
+│
 ├─ src/
 │  ├─ cli_parser.py            # CLI argument parser
 │  ├─ constants.py             # Validation constants/config values
@@ -216,10 +217,20 @@ YMLValidator/
 │  ├─ platform_checks.py       # Cross-platform executable discovery
 │  ├─ utils.py                 # Shared file collection and file checks
 │  └─ validation_by_schema.py  # JSON Schema validation pipeline
-└─ tests/
-	├─ conftest.py              # Custom pytest flags (including --update-golden)
-	└─ golden/                  # Golden-file inputs/expected outputs
-	...
+│
+├─ tests/
+│	├─ conftest.py              # Custom pytest flags (including --update-golden)
+│	├─ golden/                  # Golden-file inputs/expected outputs └─
+│	...
+│
+├─ main.py                  # CLI entry point
+├─ version.py               # version storage
+├─ .gitignore               # .gitignore
+├─ pyproject.toml           # Project metadata and tooling config
+├─ requirements.txt         # Requirements storage
+├─ requirements.in
+├─ README.md
+├─ LICENSE
 ```
 
 ## TODO
@@ -237,6 +248,8 @@ YMLValidator/
 
 ## DONE
 
+- [x] Refactored main pipelines
+- [x] Fixed Security-checks
 - [x] Added golden-file integration tests with fixtures in `tests/golden/`
 - [x] Added CI-friendly output
 - [x] Added JSON Schema validation
