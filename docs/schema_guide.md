@@ -1,41 +1,90 @@
 ### How to write your own schema
+
 Use [schema_examples/schema_example.json](schema_examples/schema_example.json), [schema_examples/schema_example.yml](schema_examples/schema_example.yml), and [schema_examples/schema_example_valid.yml](schema_examples/schema_example_valid.yml) as a baseline.
 
-Rules:
+### Core recommendations
 
-- Start with `type: object` and an explicit `required` list for critical root fields (`name`, `on`, `jobs`, etc.).
-- Lock structure with `additionalProperties: false` on root and nested objects where strict validation is needed.
-- Reuse structure through `definitions` + `$ref` for repeated blocks (for example `job` and `step`).
-- For fields with multiple accepted shapes, use `oneOf` (example: `runs-on` as string or array).
-- Enforce practical constraints with `minItems`, `minLength`, `enum`, and `pattern` to catch real mistakes early.
-- For YAML schemas and YAML configs, quote `"on"` as a key (`"on": ...`) to avoid YAML boolean coercion in PyYAML.
+Follow these rules to keep schemas strict, practical, and reliable:
 
-Anti-examples:
+1. Start from the root object:
 
-- Too permissive:
 ```yaml
 type: object
-additionalProperties: true
+required: ["name", "on", "jobs"]
+additionalProperties: false
 ```
 
-- Missing required keys (schema allows half-broken config):
-```yaml
-type: object
-properties:
-    jobs:
-        type: object
-```
+2. Explicitly define `required` for all critical sections.
 
-- Ambiguous YAML key (parsed as boolean, not as field name):
-```yaml
-on:
-    push:
-        branches: [main]
-```
+3. Close structures with `additionalProperties: false` where strict validation is needed:
+- root
+- job
+- step
+- with/env (if you want to reject unknown keys)
 
-Use this instead:
+4. Reuse repeated blocks via `definitions` + `$ref`:
+- job
+- step
+- action-like step
+
+5. Use `oneOf` for fields with multiple valid shapes:
+- `runs-on`: string or array of strings
+- `needs`: string or array of strings
+
+6. Add practical constraints:
+- `minItems`
+- `minLength`
+- `enum`
+- `pattern`
+- `uniqueItems`
+
+YAML-specific rule:
+always quote the key `"on"` to avoid PyYAML boolean coercion.
+
+Example:
+
 ```yaml
 "on":
-    push:
-        branches: [main]
+  push:
+    branches: ["main"]
+```
+
+### Additional tips
+
+1. Tighten schemas incrementally: start with critical fields, then add stricter checks.
+2. A good schema not only catches errors but also guides consistent config authoring.
+3. Use `pattern` for job names, step names, env keys, and other format-sensitive fields.
+4. For real CI pipelines, strongly consider:
+- `timeout-minutes >= 1`
+- `minItems` for `steps`
+- `uses` format check with pattern like `repo/action@version`
+5. Keep schema, valid example YAML, and validation command together so CI/local checks stay simple.
+
+### Anti-patterns to avoid
+
+| Bad | Why it is bad | Better approach |
+|---|---|---|
+| `additionalProperties: true` | Too permissive, validates almost anything | `additionalProperties: false` in critical objects |
+| Missing `required` | Broken configs pass validation | Explicitly list required keys |
+| `on:` without quotes | May be interpreted as boolean | `"on":` |
+| `oneOf` without constraints | Branches become too broad | Strict types and constraints in each branch |
+| Overly broad `pattern` (for example `.*`) | Formally valid but low quality | Use target regex for specific field formats |
+
+### Pre-commit checklist
+
+1. `required` is defined for root and key nested sections.
+2. No unnecessary permissive logic in `additionalProperties`.
+3. Alternative field shapes are covered via `oneOf`.
+4. At least one valid and one invalid example exist.
+5. Local validation with `--schema` returns expected result.
+
+### Repository demo pair
+
+- YAML config: `demo/demo_small.yml`
+- Custom schema: `demo/demo_small_schema.json`
+
+Validate locally:
+
+```bash
+python main.py --yml-files demo/demo_small.yml --schema demo/demo_small_schema.json
 ```

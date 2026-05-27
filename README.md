@@ -67,12 +67,22 @@ pip install ".[dev]"
 macOS (Homebrew):
 ```bash
 brew install yq graphviz
+
+# yml2dot is distributed via GitHub Releases
+# download the macOS binary and place it in PATH, for example:
+sudo mv ./yml2dot /usr/local/bin/yml2dot
+sudo chmod +x /usr/local/bin/yml2dot
 ```
 
 Ubuntu/Debian:
 ```bash
 sudo apt update
 sudo apt install -y yq graphviz
+
+# yml2dot is distributed via GitHub Releases
+# download the Linux binary and place it in PATH, for example:
+sudo mv ./yml2dot /usr/local/bin/yml2dot
+sudo chmod +x /usr/local/bin/yml2dot
 ```
 
 Windows:
@@ -80,6 +90,13 @@ Windows:
 1. Install `yq` from the official release page or package manager.
 2. Install [Graphviz](https://graphviz.org/download/).
 3. Install [yml2dot](https://github.com/lucasepe/yml2dot/releases) and ensure `yq`, `yml2dot`, and `dot` are available in `PATH`.
+
+Quick check (macOS/Linux):
+```bash
+command -v yq
+command -v yml2dot
+command -v dot
+```
 
 ### 5. Run tool
 Validate one file:
