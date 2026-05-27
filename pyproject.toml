@@ -11,7 +11,7 @@ dev = ["pytest", "coverage", "ruff", "black", "mypy", "bandit", "safety"]
 select = ["TID252"]  # Forbids relative imports
 
 [tool.coverage.run]
-source = ["src", "main.py"]
+source = ["src", "main"]
 omit = [
     "tests/*",
     "*/site-packages/*",

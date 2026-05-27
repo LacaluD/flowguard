@@ -1,4 +1,4 @@
-INFO: Starting bot 0.0.1 (build __dev__, commit __dev__)
+INFO: Starting YMLValidator 0.0.1 (build __dev__, commit __dev__)
 INFO: All required executables were found
 INFO: yq: /bin/tool
 INFO: yml2dot: /bin/tool
