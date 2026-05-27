@@ -10,12 +10,12 @@ from pathlib import Path
 from typing import Sequence
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 from src.utils import _collect_yaml_files, check_for_empty_file
 from src.logger import log_exception_short
 from src.constants import INDENT_SIZE, EXTENDED_CHECKS, DEPRECATED_ACTIONS
-
 
 
 def check_for_deprecated_keys(file_path: Path, content: str) -> int:
@@ -26,8 +26,7 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
 
     for deprecated in DEPRECATED_ACTIONS:
         if deprecated in content:
-            logger.warning("%s uses deprecated action '%s'",
-                           file_path, deprecated)
+            logger.warning("%s uses deprecated action '%s'", file_path, deprecated)
             issues += 1
 
     return issues
@@ -41,7 +40,7 @@ def run_yq(fpath: Path, expression: str, description: str, yq_exec: Path) -> int
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
 
         output = result.stdout.strip()
@@ -89,8 +88,7 @@ def check_indentation(file_path: Path) -> int:
                 continue
 
             if "\t" in indent:
-                logger.warning(
-                    "%s: line %d tab used (use spaces)", file_path, i)
+                logger.warning("%s: line %d tab used (use spaces)", file_path, i)
                 continue
 
             if indent and (len(indent) % INDENT_SIZE != 0):
@@ -130,16 +128,25 @@ def validation_main(yml_path: Path, yq_exec: Path) -> list[Path] | None:
             content = file_path.read_text(encoding="utf-8")
         except Exception as e:
             log_exception_short(
-                logger, e, prefix=f"Cannot read {file_path}", level="error", limit=1)
+                logger, e, prefix=f"Cannot read {file_path}", level="error", limit=1
+            )
             total_errors += 1
             continue
 
-        total_errors += run_yq(fpath=file_path, expression=".",
-                               description="base syntax check", yq_exec=yq_exec)
+        total_errors += run_yq(
+            fpath=file_path,
+            expression=".",
+            description="base syntax check",
+            yq_exec=yq_exec,
+        )
 
         for expr in EXTENDED_CHECKS:
-            total_errors += run_yq(fpath=file_path, expression=expr,
-                                   description=f"check '{expr}'", yq_exec=yq_exec)
+            total_errors += run_yq(
+                fpath=file_path,
+                expression=expr,
+                description=f"check '{expr}'",
+                yq_exec=yq_exec,
+            )
 
         total_errors += check_for_deprecated_keys(file_path, content)
 
@@ -165,7 +172,7 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
             yml2dot_proc = subprocess.Popen(
                 [str(yml2dot_exec), str(f)],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
             )
             with open(output_file, "wb") as out:
                 subprocess.run(
@@ -173,17 +180,23 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
                     stdin=yml2dot_proc.stdout,
                     stdout=out,
                     stderr=subprocess.PIPE,
-                    check=True
+                    check=True,
                 )
             yml2dot_proc.wait()
             logger.info("%s -> %s generated", f, output_file)
             last_output_file = output_file
         except subprocess.CalledProcessError as e:
             log_exception_short(
-                logger, e, prefix=f"Failed to build diagram for {f}", level="error", limit=1)
+                logger,
+                e,
+                prefix=f"Failed to build diagram for {f}",
+                level="error",
+                limit=1,
+            )
             if e.stderr:
-                logger.error("dot stderr: %s", e.stderr.decode(
-                    errors="replace").strip())
+                logger.error(
+                    "dot stderr: %s", e.stderr.decode(errors="replace").strip()
+                )
             return None
 
     return last_output_file

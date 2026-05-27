@@ -102,7 +102,9 @@ LOG_FORMAT: Final[str] = (
 DATE_FORMAT: Final[str] = "%Y-%m-%d %H:%M:%S"
 
 
-def _resolve_level(level_name: str, fallback: int = logging.INFO) -> tuple[int, str | None]:
+def _resolve_level(
+    level_name: str, fallback: int = logging.INFO
+) -> tuple[int, str | None]:
     """Resolve a string log level to stdlib int level with optional warning."""
     normalized = (level_name or "").strip().upper()
     if hasattr(logging, normalized):
@@ -147,8 +149,7 @@ class MainLogger:
 
     def resolve_file_log_level(self) -> tuple[str, str | None]:
         """Validate LOG_FILE_LEVEL and return safe value with optional warning text."""
-        _, warning = _resolve_level(
-            self.settings.log_file_level, fallback=logging.INFO)
+        _, warning = _resolve_level(self.settings.log_file_level, fallback=logging.INFO)
         return self.settings.log_file_level, warning
 
     def init_logger(self, quiet: bool = False) -> logging.Logger:
@@ -158,9 +159,11 @@ class MainLogger:
 
         self.ensure_log_path_exists()
         console_level, console_warning = _resolve_level(
-            self.settings.log_level, fallback=logging.INFO)
+            self.settings.log_level, fallback=logging.INFO
+        )
         file_level, file_warning = _resolve_level(
-            self.settings.log_file_level, fallback=logging.INFO)
+            self.settings.log_file_level, fallback=logging.INFO
+        )
 
         formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
 
@@ -169,10 +172,8 @@ class MainLogger:
         stderr_handler.setFormatter(formatter)
 
         stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setLevel(
-            logging.CRITICAL + 1 if quiet else logging.DEBUG)
-        stdout_handler.addFilter(
-            lambda record: record.levelno < logging.WARNING)
+        stdout_handler.setLevel(logging.CRITICAL + 1 if quiet else logging.DEBUG)
+        stdout_handler.addFilter(lambda record: record.levelno < logging.WARNING)
         stdout_handler.setFormatter(formatter)
 
         file_handler = TimedRotatingFileHandler(
@@ -200,7 +201,8 @@ class MainLogger:
             self.logger.warning(file_warning)
 
         self.logger.debug(
-            "Logging handlers configured. log_file_path=%s", self.log_file_path)
+            "Logging handlers configured. log_file_path=%s", self.log_file_path
+        )
         self.logger.info("Logger initialized successfully")
         MainLogger._configured = True
         return self.logger

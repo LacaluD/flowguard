@@ -19,7 +19,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="choose dir or file path to yml configs",
     )
     parser.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         help="suppress output",
     )

@@ -49,16 +49,14 @@ def test_tabs_indentation_yaml_is_invalid(tmp_path: Path) -> None:
 
 def test_mixed_indentation_yaml_is_invalid(tmp_path: Path) -> None:
     yaml_file = tmp_path / "mixed.yml"
-    yaml_file.write_text(
-        "root:\n  child1: a\n   child2: b\n", encoding="utf-8")
+    yaml_file.write_text("root:\n  child1: a\n   child2: b\n", encoding="utf-8")
 
     assert _validate_file_with_permissive_schema(tmp_path, yaml_file) == 1
 
 
 def test_empty_values_yaml_is_valid(tmp_path: Path) -> None:
     yaml_file = tmp_path / "empty_vals.yml"
-    yaml_file.write_text(
-        "name:\nversion:\ndescription: null\n", encoding="utf-8")
+    yaml_file.write_text("name:\nversion:\ndescription: null\n", encoding="utf-8")
 
     assert _validate_file_with_permissive_schema(tmp_path, yaml_file) == 0
 

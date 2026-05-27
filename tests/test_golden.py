@@ -9,7 +9,6 @@ import pytest
 
 from main import main
 
-
 GOLDEN_DIR = Path(__file__).parent / "golden"
 
 
@@ -44,12 +43,25 @@ def run_and_capture(yml_file: Path) -> str:
     captured = io.StringIO()
 
     with patch("sys.stdout", captured):
-        with patch("src.logger.MainLogger.init_logger", side_effect=lambda quiet=False: _configure_test_logging(quiet=quiet)):
+        with patch(
+            "src.logger.MainLogger.init_logger",
+            side_effect=lambda quiet=False: _configure_test_logging(quiet=quiet),
+        ):
             with patch("main.find_executable", side_effect=lambda _: Path("/bin/tool")):
-                with patch("main.find_executable_recursive", side_effect=lambda **_: Path("/bin/tool")):
-                    with patch("main.validation_main", side_effect=_fake_validation_main):
-                        with patch("main.build_dot_scheme", side_effect=lambda **_: Path("result.png")):
-                            with patch("sys.argv", ["main.py", "--yml-files", str(yml_file)]):
+                with patch(
+                    "main.find_executable_recursive",
+                    side_effect=lambda **_: Path("/bin/tool"),
+                ):
+                    with patch(
+                        "main.validation_main", side_effect=_fake_validation_main
+                    ):
+                        with patch(
+                            "main.build_dot_scheme",
+                            side_effect=lambda **_: Path("result.png"),
+                        ):
+                            with patch(
+                                "sys.argv", ["main.py", "--yml-files", str(yml_file)]
+                            ):
                                 main()
 
     return captured.getvalue().strip()

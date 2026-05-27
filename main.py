@@ -17,8 +17,9 @@ from src.platform_checks import find_executable, find_executable_recursive
 from src.validation_by_schema import validate_against_schema
 
 from version import __version__
-__build__ = '__dev__'
-__commit__ = '__dev__'
+
+__build__ = "__dev__"
+__commit__ = "__dev__"
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,8 @@ def main() -> int:
 
     # log what version and build is currently running
     logger.info(
-        f"Starting YMLValidator {__version__} (build {__build__}, commit {__commit__})")
+        f"Starting YMLValidator {__version__} (build {__build__}, commit {__commit__})"
+    )
 
     yq_filename = "yq.exe" if sys.platform == "win32" else "yq"
     yml2_filename = "yml2dot.exe" if sys.platform == "win32" else "yml2dot"
@@ -44,10 +46,12 @@ def main() -> int:
     if args.exec_dir:
         if not yq_exe:
             yq_exe = find_executable_recursive(
-                fname=yq_filename, search_dir=args.exec_dir)
+                fname=yq_filename, search_dir=args.exec_dir
+            )
         if not yml2_dot_exe:
             yml2_dot_exe = find_executable_recursive(
-                fname=yml2_filename, search_dir=args.exec_dir)
+                fname=yml2_filename, search_dir=args.exec_dir
+            )
 
     if not yq_exe or not yml2_dot_exe:
         logger.error("Not all required executables were found")
@@ -61,8 +65,7 @@ def main() -> int:
 
     if args.schema:
         logger.info("Launching validation process with schema")
-        res = validate_against_schema(
-            yml_path=args.yml_files, schema_file=args.schema)
+        res = validate_against_schema(yml_path=args.yml_files, schema_file=args.schema)
         if res != 0:
             return 1
 
@@ -72,11 +75,9 @@ def main() -> int:
         logger.error("Validation failed")
         return 1
 
-    output_file = build_dot_scheme(
-        yml_files=validated, yml2dot_exec=yml2_dot_exe)
+    output_file = build_dot_scheme(yml_files=validated, yml2dot_exec=yml2_dot_exe)
     if output_file is not None:
-        logger.info(
-            "Pipeline ended successfully, check results: %s", output_file)
+        logger.info("Pipeline ended successfully, check results: %s", output_file)
         return 0
 
     logger.error("Diagram generation failed")

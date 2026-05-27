@@ -12,8 +12,11 @@ EXTENDED_CHECKS: Final[list[str]] = [
     ".jobs",
     ".on",
     ".jobs.*.steps",
-    ".jobs.*.runs-on"
+    ".jobs.*.runs-on",
 ]
 
 DEPRECATED_ACTIONS: Final[list[str]] = [
-    "setup-python@v3", "checkout@v4", "telegram-action@v1"]
+    "setup-python@v3",
+    "checkout@v4",
+    "telegram-action@v1",
+]

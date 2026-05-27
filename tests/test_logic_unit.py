@@ -56,7 +56,9 @@ def test_check_for_empty_file_returns_zero_for_non_empty_file(tmp_path: Path) ->
     assert main_validation_logic.check_for_empty_file(non_empty) == 0
 
 
-def test_check_for_empty_file_returns_one_on_os_error(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_check_for_empty_file_returns_one_on_os_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     yml_file = tmp_path / "broken.yml"
     yml_file.write_text("name: build\n", encoding="utf-8")
 
@@ -72,68 +74,83 @@ def test_check_for_deprecated_keys_counts_multiple_hits(tmp_path: Path) -> None:
     content = "uses setup-python@v3 and checkout@v4"
 
     result = main_validation_logic.check_for_deprecated_keys(
-        tmp_path / "wf.yml", content)
+        tmp_path / "wf.yml", content
+    )
 
     assert result == 2
 
 
-def test_check_for_deprecated_keys_returns_zero_for_empty_content(tmp_path: Path) -> None:
-    result = main_validation_logic.check_for_deprecated_keys(
-        tmp_path / "wf.yml", "")
+def test_check_for_deprecated_keys_returns_zero_for_empty_content(
+    tmp_path: Path,
+) -> None:
+    result = main_validation_logic.check_for_deprecated_keys(tmp_path / "wf.yml", "")
 
     assert result == 0
 
 
-def test_run_yq_returns_zero_for_base_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_run_yq_returns_zero_for_base_success(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
     def fake_run(*args, **kwargs) -> subprocess.CompletedProcess[str]:
-        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout="ok\n", stderr="")
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=0, stdout="ok\n", stderr=""
+        )
 
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
 
     result = main_validation_logic.run_yq(
-        yml_file, ".", "base syntax check", Path("yq"))
+        yml_file, ".", "base syntax check", Path("yq")
+    )
 
     assert result == 0
 
 
-def test_run_yq_returns_one_for_missing_extended_field(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_run_yq_returns_one_for_missing_extended_field(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
     def fake_run(*args, **kwargs) -> subprocess.CompletedProcess[str]:
-        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout="null\n", stderr="")
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=0, stdout="null\n", stderr=""
+        )
 
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
 
     result = main_validation_logic.run_yq(
-        yml_file, ".jobs", "check '.jobs'", Path("yq"))
+        yml_file, ".jobs", "check '.jobs'", Path("yq")
+    )
 
     assert result == 1
 
 
-def test_run_yq_returns_one_on_subprocess_error(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_run_yq_returns_one_on_subprocess_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("broken: [\n", encoding="utf-8")
 
     def raise_error(*args, **kwargs):
         raise subprocess.CalledProcessError(
-            returncode=1, cmd=args[0], stderr="parse error")
+            returncode=1, cmd=args[0], stderr="parse error"
+        )
 
     monkeypatch.setattr(main_validation_logic.subprocess, "run", raise_error)
 
     result = main_validation_logic.run_yq(
-        yml_file, ".", "base syntax check", Path("yq"))
+        yml_file, ".", "base syntax check", Path("yq")
+    )
 
     assert result == 1
 
 
 def test_check_indentation_returns_zero_for_clean_file(tmp_path: Path) -> None:
     yml_file = tmp_path / "clean.yml"
-    yml_file.write_text(
-        "name: ci\njobs:\n  build:\n    steps: []\n", encoding="utf-8")
+    yml_file.write_text("name: ci\njobs:\n  build:\n    steps: []\n", encoding="utf-8")
 
     assert main_validation_logic.check_indentation(yml_file) == 0
 
@@ -157,47 +174,52 @@ def test_validation_main_raises_type_error_for_non_path() -> None:
         main_validation_logic.validation_main("not_a_path", Path("yq"))
 
 
-def test_validation_main_returns_none_when_no_yaml_found(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda _: [])
+def test_validation_main_returns_none_when_no_yaml_found(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(main_validation_logic, "_collect_yaml_files", lambda _: [])
 
     result = main_validation_logic.validation_main(tmp_path, Path("yq"))
 
     assert result is None
 
 
-def test_validation_main_returns_none_when_any_error_found(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_validation_main_returns_none_when_any_error_found(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda _: [yml_file])
-    monkeypatch.setattr(main_validation_logic,
-                        "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(
+        main_validation_logic, "_collect_yaml_files", lambda _: [yml_file]
+    )
+    monkeypatch.setattr(main_validation_logic, "check_for_empty_file", lambda _: 0)
     monkeypatch.setattr(main_validation_logic, "run_yq", lambda **_: 1)
-    monkeypatch.setattr(main_validation_logic,
-                        "check_for_deprecated_keys", lambda *_: 0)
-    monkeypatch.setattr(main_validation_logic,
-                        "check_indentation", lambda _: 0)
+    monkeypatch.setattr(
+        main_validation_logic, "check_for_deprecated_keys", lambda *_: 0
+    )
+    monkeypatch.setattr(main_validation_logic, "check_indentation", lambda _: 0)
 
     result = main_validation_logic.validation_main(tmp_path, Path("yq"))
 
     assert result is None
 
 
-def test_validation_main_returns_yaml_files_on_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_validation_main_returns_yaml_files_on_success(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda _: [yml_file])
-    monkeypatch.setattr(main_validation_logic,
-                        "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(
+        main_validation_logic, "_collect_yaml_files", lambda _: [yml_file]
+    )
+    monkeypatch.setattr(main_validation_logic, "check_for_empty_file", lambda _: 0)
     monkeypatch.setattr(main_validation_logic, "run_yq", lambda **_: 0)
-    monkeypatch.setattr(main_validation_logic,
-                        "check_for_deprecated_keys", lambda *_: 0)
-    monkeypatch.setattr(main_validation_logic,
-                        "check_indentation", lambda _: 0)
+    monkeypatch.setattr(
+        main_validation_logic, "check_for_deprecated_keys", lambda *_: 0
+    )
+    monkeypatch.setattr(main_validation_logic, "check_indentation", lambda _: 0)
 
     result = main_validation_logic.validation_main(tmp_path, Path("yq"))
 
@@ -210,7 +232,9 @@ def test_build_dot_scheme_returns_none_for_empty_input() -> None:
     assert result is None
 
 
-def test_build_dot_scheme_returns_none_on_dot_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_build_dot_scheme_returns_none_on_dot_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
@@ -226,19 +250,20 @@ def test_build_dot_scheme_returns_none_on_dot_failure(monkeypatch: pytest.Monkey
 
     def raise_dot_error(*args, **kwargs):
         raise subprocess.CalledProcessError(
-            returncode=1, cmd=args[0], stderr=b"dot failed")
+            returncode=1, cmd=args[0], stderr=b"dot failed"
+        )
 
     monkeypatch.setattr(main_validation_logic.subprocess, "Popen", fake_popen)
-    monkeypatch.setattr(main_validation_logic.subprocess,
-                        "run", raise_dot_error)
+    monkeypatch.setattr(main_validation_logic.subprocess, "run", raise_dot_error)
 
-    result = main_validation_logic.build_dot_scheme(
-        [yml_file], Path("yml2dot"))
+    result = main_validation_logic.build_dot_scheme([yml_file], Path("yml2dot"))
 
     assert result is None
 
 
-def test_build_dot_scheme_returns_last_png_path_on_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_build_dot_scheme_returns_last_png_path_on_success(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     first = tmp_path / "one.yml"
     second = tmp_path / "two.yml"
     first.write_text("name: one\n", encoding="utf-8")
@@ -255,12 +280,13 @@ def test_build_dot_scheme_returns_last_png_path_on_success(monkeypatch: pytest.M
         return FakePopen()
 
     def fake_run(*args, **kwargs) -> subprocess.CompletedProcess[bytes]:
-        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout=b"", stderr=b"")
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=0, stdout=b"", stderr=b""
+        )
 
     monkeypatch.setattr(main_validation_logic.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
 
-    result = main_validation_logic.build_dot_scheme(
-        [first, second], Path("yml2dot"))
+    result = main_validation_logic.build_dot_scheme([first, second], Path("yml2dot"))
 
     assert result == second.with_suffix(".png")

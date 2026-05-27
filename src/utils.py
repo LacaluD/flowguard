@@ -1,12 +1,11 @@
-
 import logging
+
 logger = logging.getLogger(__name__)
 
 import sys
 from pathlib import Path
 
 from src.logger import log_exception_short
-
 
 
 def _collect_yaml_files(yml_directory: Path) -> list[Path]:
@@ -34,6 +33,7 @@ def check_for_empty_file(file_path: Path) -> int:
             return 1
     except OSError as e:
         log_exception_short(
-            logger, e, prefix=f"Could not stat file {file_path}", level="error", limit=1)
+            logger, e, prefix=f"Could not stat file {file_path}", level="error", limit=1
+        )
         return 1
     return 0

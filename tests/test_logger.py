@@ -28,7 +28,9 @@ def test_format_exception_short_with_traceback_contains_exception_name() -> None
     assert "in _raise_value_error" in result
 
 
-def test_log_exception_short_uses_requested_level(caplog: pytest.LogCaptureFixture) -> None:
+def test_log_exception_short_uses_requested_level(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     test_logger = logging.getLogger("test.log_exception_short.level")
 
     try:
@@ -36,13 +38,16 @@ def test_log_exception_short_uses_requested_level(caplog: pytest.LogCaptureFixtu
     except ValueError as exc:
         with caplog.at_level(logging.WARNING, logger=test_logger.name):
             logger_module.log_exception_short(
-                test_logger, exc, prefix="prefix", level="warning", limit=1)
+                test_logger, exc, prefix="prefix", level="warning", limit=1
+            )
 
     assert "prefix:" in caplog.text
     assert "ValueError: boom" in caplog.text
 
 
-def test_log_exception_short_falls_back_to_error_for_unknown_level(caplog: pytest.LogCaptureFixture) -> None:
+def test_log_exception_short_falls_back_to_error_for_unknown_level(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     test_logger = logging.getLogger("test.log_exception_short.fallback")
 
     try:
@@ -50,7 +55,8 @@ def test_log_exception_short_falls_back_to_error_for_unknown_level(caplog: pytes
     except ValueError as exc:
         with caplog.at_level(logging.ERROR, logger=test_logger.name):
             logger_module.log_exception_short(
-                test_logger, exc, prefix="prefix", level="unknown-level", limit=1)
+                test_logger, exc, prefix="prefix", level="unknown-level", limit=1
+            )
 
     assert "prefix:" in caplog.text
     assert "ValueError: boom" in caplog.text
@@ -64,8 +70,7 @@ def test_resolve_level_valid_name_returns_expected_level() -> None:
 
 
 def test_resolve_level_invalid_name_returns_fallback_and_warning() -> None:
-    level, warning = logger_module._resolve_level(
-        "bad-level", fallback=logging.INFO)
+    level, warning = logger_module._resolve_level("bad-level", fallback=logging.INFO)
 
     assert level == logging.INFO
     assert warning is not None
@@ -84,7 +89,9 @@ def test_get_settings_reads_env_values(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.external_log_level == "WARNING"
 
 
-def test_resolve_log_paths_uses_env_values(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_resolve_log_paths_uses_env_values(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.setenv("LOG_DIR", str(tmp_path / "custom-logs"))
     monkeypatch.setenv("LOG_FILE_NAME", "validator.log")
 
@@ -94,7 +101,9 @@ def test_resolve_log_paths_uses_env_values(monkeypatch: pytest.MonkeyPatch, tmp_
     assert log_file == tmp_path / "custom-logs" / "validator.log"
 
 
-def test_ensure_log_path_exists_creates_dir_and_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_ensure_log_path_exists_creates_dir_and_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
     monkeypatch.setenv("LOG_FILE_NAME", "main.log")
 
@@ -105,7 +114,9 @@ def test_ensure_log_path_exists_creates_dir_and_file(monkeypatch: pytest.MonkeyP
     assert main_logger.log_file_path.exists()
 
 
-def test_configure_stdlib_logging_sets_external_levels(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_configure_stdlib_logging_sets_external_levels(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("EXTERNAL_LOG_LEVEL", "ERROR")
 
     main_logger = logger_module.MainLogger("test.configure_stdlib")
@@ -115,7 +126,9 @@ def test_configure_stdlib_logging_sets_external_levels(monkeypatch: pytest.Monke
     assert logging.getLogger("telethon").level == logging.ERROR
 
 
-def test_resolve_file_log_level_returns_warning_for_invalid_level(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_file_log_level_returns_warning_for_invalid_level(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("LOG_FILE_LEVEL", "invalid")
 
     main_logger = logger_module.MainLogger("test.resolve_file_log_level")
@@ -125,7 +138,9 @@ def test_resolve_file_log_level_returns_warning_for_invalid_level(monkeypatch: p
     assert warning is not None
 
 
-def test_init_logger_configures_handlers_and_is_idempotent(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_init_logger_configures_handlers_and_is_idempotent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
     monkeypatch.setenv("LOG_FILE_NAME", "main.log")
     monkeypatch.setenv("LOG_LEVEL", "INFO")
@@ -142,20 +157,24 @@ def test_init_logger_configures_handlers_and_is_idempotent(monkeypatch: pytest.M
     assert logger_module.MainLogger._configured is True
     assert len(root_logger.handlers) == 3
     assert any(
-        isinstance(h, logging.StreamHandler) and getattr(
-            h, "stream", None) is logger_module.sys.stderr
+        isinstance(h, logging.StreamHandler)
+        and getattr(h, "stream", None) is logger_module.sys.stderr
         for h in root_logger.handlers
     )
     assert any(
-        isinstance(h, logging.StreamHandler) and getattr(
-            h, "stream", None) is logger_module.sys.stdout
+        isinstance(h, logging.StreamHandler)
+        and getattr(h, "stream", None) is logger_module.sys.stdout
         for h in root_logger.handlers
     )
-    assert any(isinstance(h, logger_module.TimedRotatingFileHandler)
-               for h in root_logger.handlers)
+    assert any(
+        isinstance(h, logger_module.TimedRotatingFileHandler)
+        for h in root_logger.handlers
+    )
 
 
-def test_init_logger_quiet_mode_reduces_console_noise(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_init_logger_quiet_mode_reduces_console_noise(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
     monkeypatch.setenv("LOG_FILE_NAME", "main.log")
     logger_module.MainLogger._configured = False
@@ -165,12 +184,16 @@ def test_init_logger_quiet_mode_reduces_console_noise(monkeypatch: pytest.Monkey
 
     root_logger = logging.getLogger()
     stderr_handlers = [
-        h for h in root_logger.handlers
-        if isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) is logger_module.sys.stderr
+        h
+        for h in root_logger.handlers
+        if isinstance(h, logging.StreamHandler)
+        and getattr(h, "stream", None) is logger_module.sys.stderr
     ]
     stdout_handlers = [
-        h for h in root_logger.handlers
-        if isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) is logger_module.sys.stdout
+        h
+        for h in root_logger.handlers
+        if isinstance(h, logging.StreamHandler)
+        and getattr(h, "stream", None) is logger_module.sys.stdout
     ]
 
     assert len(stderr_handlers) == 1
@@ -179,7 +202,9 @@ def test_init_logger_quiet_mode_reduces_console_noise(monkeypatch: pytest.Monkey
     assert stdout_handlers[0].level > logging.CRITICAL
 
 
-def test_main_logger_wrapper_log_exception_short_logs_message(caplog: pytest.LogCaptureFixture) -> None:
+def test_main_logger_wrapper_log_exception_short_logs_message(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     test_logger = logging.getLogger("test.main_logger.wrapper")
     main_logger = logger_module.MainLogger("test.main_logger.wrapper")
     main_logger.log = test_logger
@@ -189,7 +214,8 @@ def test_main_logger_wrapper_log_exception_short_logs_message(caplog: pytest.Log
     except ValueError as exc:
         with caplog.at_level(logging.ERROR, logger=test_logger.name):
             main_logger.log_exception_short(
-                exc, prefix="wrapper", level="error", limit=1)
+                exc, prefix="wrapper", level="error", limit=1
+            )
 
     assert "wrapper:" in caplog.text
     assert "ValueError: boom" in caplog.text

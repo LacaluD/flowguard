@@ -6,7 +6,9 @@ import sys
 from typing import Sequence
 
 
-def find_executable(filename: str, extra_paths: Sequence[Path | str] | None = None) -> Path | None:
+def find_executable(
+    filename: str, extra_paths: Sequence[Path | str] | None = None
+) -> Path | None:
     """Find an executable in PATH first, then in known folders (non-recursive)."""
     path = shutil.which(filename)
     if path:
@@ -16,8 +18,12 @@ def find_executable(filename: str, extra_paths: Sequence[Path | str] | None = No
     if sys.platform == "win32":
         default_dirs = [Path("C:/")]
     else:
-        default_dirs = [Path("/usr/local/bin"), Path("/usr/bin"),
-                        Path("/opt/homebrew/bin"), Path("/usr/local/sbin")]
+        default_dirs = [
+            Path("/usr/local/bin"),
+            Path("/usr/bin"),
+            Path("/opt/homebrew/bin"),
+            Path("/usr/local/sbin"),
+        ]
 
     if extra_paths:
         default_dirs += [Path(p) for p in extra_paths]

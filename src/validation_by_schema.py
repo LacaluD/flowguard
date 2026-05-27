@@ -12,6 +12,7 @@ import json
 from typing import Any
 from pathlib import Path
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,8 +20,7 @@ def _load_schema(schema_file: Path) -> dict[str, Any]:
     """Load schema from JSON/YAML file and return mapping object."""
     schema_text = schema_file.read_text(encoding="utf-8")
     is_yaml_schema = schema_file.suffix.lower() in (".yml", ".yaml")
-    loaded = yaml.safe_load(
-        schema_text) if is_yaml_schema else json.loads(schema_text)
+    loaded = yaml.safe_load(schema_text) if is_yaml_schema else json.loads(schema_text)
 
     if not isinstance(loaded, dict):
         raise jsonschema.SchemaError("Schema root must be a JSON object")
@@ -36,8 +36,7 @@ def _validate_single_yaml(yaml_file: Path, schema: dict[str, Any]) -> int:
         logger.info("%s is valid against schema", yaml_file)
         return 0
     except jsonschema.ValidationError as exc:
-        logger.error("%s: %s at %s", yaml_file,
-                     exc.message, list(exc.absolute_path))
+        logger.error("%s: %s at %s", yaml_file, exc.message, list(exc.absolute_path))
         return 1
     except yaml.YAMLError as exc:
         logger.error("YAML parse error in %s: %s", yaml_file, exc)
@@ -61,8 +60,7 @@ def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
     try:
         yaml_files = _collect_yaml_files(yml_path)
         if not yaml_files:
-            logger.error(
-                "No YAML files found for schema validation in '%s'", yml_path)
+            logger.error("No YAML files found for schema validation in '%s'", yml_path)
             return 1
 
         if not schema_file.exists():
