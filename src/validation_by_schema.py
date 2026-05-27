@@ -6,6 +6,7 @@ both a single YAML file path and a directory path (recursive lookup).
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import json
@@ -100,7 +101,9 @@ def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
         return 1
 
 
-def validate_custom_pipeline(yml_files: Path, val_schema: Path, yml2dot_exe: Path) -> int:
+def validate_custom_pipeline(
+    yml_files: Path, val_schema: Path, yml2dot_exe: Path
+) -> int:
     """Run schema-based validation pipeline and then build diagrams.
 
     Args:

@@ -47,8 +47,7 @@ def test_main_returns_error_when_executables_missing(
     namespace = Namespace(
         yml_files=tmp_path / "any.yml", exec_dir=None, schema=None, quiet=False
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "find_executable", lambda _: None)
 
     result = app_main.main()
@@ -63,12 +62,9 @@ def test_main_success_flow_returns_zero(
     yml_file.write_text("name: ci\n", encoding="utf-8")
     png_file = yml_file.with_suffix(".png")
 
-    namespace = Namespace(yml_files=yml_file,
-                          exec_dir=None, schema=None, quiet=False)
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    namespace = Namespace(yml_files=yml_file, exec_dir=None, schema=None, quiet=False)
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
     monkeypatch.setattr(app_main, "regular_validation", lambda **_: 0)
 
     result = app_main.main()
@@ -85,8 +81,7 @@ def test_main_uses_recursive_search_when_exec_dir_is_set(
     namespace = Namespace(
         yml_files=yml_file, exec_dir=tmp_path, schema=None, quiet=False
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "find_executable", lambda _: None)
 
     calls: list[tuple[str, Path]] = []
@@ -111,12 +106,9 @@ def test_main_returns_error_when_validation_fails(
     yml_file = tmp_path / "workflow.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    namespace = Namespace(yml_files=yml_file,
-                          exec_dir=None, schema=None, quiet=False)
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    namespace = Namespace(yml_files=yml_file, exec_dir=None, schema=None, quiet=False)
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
     monkeypatch.setattr(app_main, "regular_validation", lambda **_: 1)
 
     result = app_main.main()
@@ -131,12 +123,9 @@ def test_main_success_output_goes_to_stdout(
     yml_file.write_text("name: ci\n", encoding="utf-8")
     png_file = yml_file.with_suffix(".png")
 
-    namespace = Namespace(yml_files=yml_file,
-                          exec_dir=None, schema=None, quiet=False)
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    namespace = Namespace(yml_files=yml_file, exec_dir=None, schema=None, quiet=False)
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
     monkeypatch.setattr(app_main, "regular_validation", lambda **_: 0)
 
     # Force handler reconfiguration so StreamHandlers bind to capsys streams.
@@ -156,8 +145,7 @@ def test_main_error_output_goes_to_stderr_in_quiet_mode(
     namespace = Namespace(
         yml_files=tmp_path / "bad.yml", exec_dir=None, schema=None, quiet=True
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "find_executable", lambda _: None)
 
     # Force handler reconfiguration so StreamHandlers bind to capsys streams.

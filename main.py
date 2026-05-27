@@ -8,6 +8,7 @@ user-provided search directory.
 
 import sys
 import logging
+
 logger = logging.getLogger(__name__)
 
 from src.logger import MainLogger
@@ -17,7 +18,6 @@ from src.validation_by_schema import validate_against_schema
 from src.platform_checks import find_executable, find_executable_recursive
 
 from version import __version__, __build__, __commit__
-
 
 
 def main() -> int:
@@ -63,7 +63,9 @@ def main() -> int:
         return validate_against_schema(yml_path=args.yml_files, schema_file=args.schema)
 
     logger.info("Launching validation process without schema")
-    return regular_validation(yml_files=args.yml_files, yq_exe=yq_exe, yml2dot_exe=yml2_dot_exe)
+    return regular_validation(
+        yml_files=args.yml_files, yq_exe=yq_exe, yml2dot_exe=yml2_dot_exe
+    )
 
 
 if __name__ == "__main__":

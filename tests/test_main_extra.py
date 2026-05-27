@@ -23,10 +23,8 @@ def test_main_schema_branch_calls_validate_against_schema(
         schema=tmp_path / "schema.json",
         quiet=False,
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
 
     called: dict[str, object] = {}
 

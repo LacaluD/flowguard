@@ -1,10 +1,10 @@
 """"""
 
-
 from src.logger import log_exception_short
 from pathlib import Path
 import sys
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,14 +41,14 @@ def check_for_empty_file(file_path: Path) -> int:
 
 def count_timeout(fpath: Path, tool: str) -> int | None:
     """
-        Automaticly count timeout time for provided config files
+    Automaticly count timeout time for provided config files
 
-        Args:
-            fpath - config path
-            exec - for what app is timeout being calculated
+    Args:
+        fpath - config path
+        exec - for what app is timeout being calculated
 
-        Returns:
-            timeount: int
+    Returns:
+        timeount: int
     """
     if not fpath.exists():
         return None

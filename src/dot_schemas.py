@@ -11,6 +11,7 @@ from typing import Sequence
 from pathlib import Path
 import subprocess
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +30,6 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
     """
     last_output_file: Path | None = None
 
-
     for f in yml_files:
         f = Path(f)
         output_file = f.with_suffix(".png")
@@ -46,10 +46,10 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
             )
 
             if yml2dot_result.returncode != 0:
-                stderr_text = yml2dot_result.stderr.decode(
-                    errors="replace").strip()
-                logger.error("yml2dot failed for %s with code %d",
-                             f, yml2dot_result.returncode)
+                stderr_text = yml2dot_result.stderr.decode(errors="replace").strip()
+                logger.error(
+                    "yml2dot failed for %s with code %d", f, yml2dot_result.returncode
+                )
                 if stderr_text:
                     logger.error("yml2dot stderr: %s", stderr_text)
                 return None
@@ -68,7 +68,8 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
             last_output_file = output_file
         except subprocess.TimeoutExpired:
             logger.error(
-                "diagram generation timed out after %ss on file: %s", timeout, f)
+                "diagram generation timed out after %ss on file: %s", timeout, f
+            )
             return None
         except subprocess.CalledProcessError as e:
             log_exception_short(
