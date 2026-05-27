@@ -75,9 +75,9 @@ jobs:
           SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
           mkdir -p docs
+
           safety scan --full-report --text --non-interactive \
-          --disable-telemetry --disable-policy-fetch --exit-zero \
-          | tee docs/safety-report.txt
+          --disable-telemetry | tee docs/safety-report.txt
         shell: bash
         continue-on-error: false
 
@@ -90,7 +90,9 @@ jobs:
       - name: Run Bandit security linter
         run: |
           mkdir -p docs
-          bandit -c configs/bandit.yml -r . -f txt -o docs/bandit-report.txt || true
+          bandit -c configs/bandit.yml -r . -f txt \
+          --severity-level high --confidence-level high \
+          | tee docs/bandit-report.txt
         shell: bash
         continue-on-error: false
 

@@ -39,6 +39,7 @@ _test*
 logs/
 TEMP/
 *coverage*
+*_reports
 
 # Other
 cython_debug/
