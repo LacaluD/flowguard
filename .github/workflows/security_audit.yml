@@ -14,11 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: python:3.12-slim
-
     steps:
       - uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install -y git curl gpg
 
       - name: Install dependencies
         run: |
