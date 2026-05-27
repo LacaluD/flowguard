@@ -101,22 +101,22 @@ command -v dot
 ### 5. Run tool
 Validate one file:
 ```bash
-python main.py --yml-files test.yml
+python main.py --files test.yml
 ```
 
 Validate all YAML files in directory:
 ```bash
-python main.py --yml-files .
+python main.py --files .
 ```
 
 Run with additional recursive binary lookup:
 ```bash
-python main.py --yml-files . --exec-dir /path/to/tools
+python main.py --files . --exec-dir /path/to/tools
 ```
 
 Run schema-based validation:
 ```bash
-python main.py --yml-files schema_examples/schema_example_valid.yml --schema schema_examples/schema_example.json
+python main.py --files schema_examples/schema_example_valid.yml --schema schema_examples/schema_example.json
 ```
 
 ### How to write your own schema
@@ -126,7 +126,7 @@ See [Schema Guide](docs/schema-guide.md) for writing your own validation schemas
 
 | Error message (example) | Typical cause | How to fix |
 |------|------|------|
-| `'<path>' is neither a file nor directory` | Wrong value in `--yml-files` (typo, wrong relative path, file moved). | Check path from repository root, then run again: `python main.py --yml-files <existing-file-or-dir>`. |
+| `'<path>' is neither a file nor directory` | Wrong value in `--files` (typo, wrong relative path, file moved). | Check path from repository root, then run again: `python main.py --files <existing-file-or-dir>`. |
 | `<file>.yml: Additional properties are not allowed (True was unexpected) at []` | In YAML, unquoted `on:` can be parsed as boolean `true` by PyYAML. | Quote the key in configs and schemas: `"on":` instead of `on:`. |
 | `<file>.yml uses deprecated action 'checkout@v4'` | Workflow references deprecated action version from the project deny-list. | Replace with supported version, for example `actions/checkout@v5`, then rerun validation. |
 
@@ -149,7 +149,7 @@ export LOG_LEVEL=DEBUG
 export LOG_FILE_LEVEL=INFO
 export LOG_DIR=./logs
 export LOG_FILE_NAME=validator.log
-python main.py --yml-files test.yml
+python main.py --files test.yml
 ```
 
 Windows PowerShell:
@@ -158,7 +158,7 @@ $env:LOG_LEVEL = "DEBUG"
 $env:LOG_FILE_LEVEL = "INFO"
 $env:LOG_DIR = ".\\logs"
 $env:LOG_FILE_NAME = "validator.log"
-python main.py --yml-files test.yml
+python main.py --files test.yml
 ```
 
 ## Testing
@@ -252,7 +252,8 @@ YMLValidator/
 
 ## TODO
 
-- Polishing changes
+- In Progress - Difference visualization
+- Polishing codebase
 - Add configuration file support for validation rules
 - Provide packaged releases for Windows/macOS/Linux
 - Add smoke integration with real binaries in CI

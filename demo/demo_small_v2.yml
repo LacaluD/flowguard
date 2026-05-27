@@ -1,0 +1,48 @@
+name: demo-pipeline-v2
+"on":
+  push:
+    branches:
+      - main
+      - develop        # добавлено
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: "Deployment target"
+        required: true
+        default: production  # изменено: было staging
+        type: choice
+        options:
+          - staging
+          - production
+          - canary           # добавлено
+
+env:
+  APP_NAME: YMLValidator
+  PYTHONUNBUFFERED: "1"
+  LOG_LEVEL: debug           # добавлено
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5       # изменено: было 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6  # изменено: было v5
+      - name: Run linter
+        run: echo "lint ok"
+
+  test:
+    runs-on:
+      - ubuntu-latest
+    needs: lint
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"  # изменено: было 3.12
+      - name: Run tests
+        run: echo "tests ok"
+      - name: Upload coverage  # добавлено
+        run: echo "coverage ok"
+
+  # deploy удалён

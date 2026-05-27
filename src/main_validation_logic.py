@@ -47,7 +47,7 @@ def run_yq(fpath: Path, expression: str, description: str, yq_exec: Path) -> int
         output = result.stdout.strip()
         # For extended checks, treat empty/null as a missing field.
         if expression != ".":
-            if output in ("", "null"):
+            if output in ("", "null", "false"):
                 logger.error("%s: %s missing", fpath, description)
                 return 1
 

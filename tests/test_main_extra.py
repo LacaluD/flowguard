@@ -18,13 +18,15 @@ def test_main_schema_branch_calls_validate_against_schema(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     namespace = Namespace(
-        yml_files=tmp_path / "wf.yml",
+        files=tmp_path / "wf.yml",
         exec_dir=None,
         schema=tmp_path / "schema.json",
         quiet=False,
     )
-    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser",
+                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable",
+                        lambda _: Path("/bin/tool"))
 
     called: dict[str, object] = {}
 
@@ -41,5 +43,5 @@ def test_main_schema_branch_calls_validate_against_schema(
     )
 
     assert app_main.main() == 0
-    assert called["yml_path"] == namespace.yml_files
+    assert called["yml_path"] == namespace.files
     assert called["schema_file"] == namespace.schema

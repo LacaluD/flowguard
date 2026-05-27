@@ -86,5 +86,5 @@ Example:
 Validate locally:
 
 ```bash
-python main.py --yml-files demo/demo_small.yml --schema demo/demo_small_schema.json
+python main.py --files demo/demo_small.yml --schema demo/demo_small_schema.json
 ```

@@ -42,7 +42,8 @@ def _fake_regular_validation(
         logging.getLogger(__name__).info("Pipeline finished successfully!")
         return 0
     except yaml.YAMLError:
-        logging.getLogger(__name__).error("Validation failed for %s", yml_files)
+        logging.getLogger(__name__).error(
+            "Validation failed for %s", yml_files)
         return 1
 
 
@@ -53,7 +54,8 @@ def run_and_capture(yml_file: Path) -> str:
     with patch("sys.stdout", captured):
         with patch(
             "src.logger.MainLogger.init_logger",
-            side_effect=lambda quiet=False: _configure_test_logging(quiet=quiet),
+            side_effect=lambda quiet=False: _configure_test_logging(
+                quiet=quiet),
         ):
             with patch("main.find_executable", side_effect=lambda _: Path("/bin/tool")):
                 with patch(
@@ -64,7 +66,8 @@ def run_and_capture(yml_file: Path) -> str:
                         "main.regular_validation", side_effect=_fake_regular_validation
                     ):
                         with patch(
-                            "sys.argv", ["main.py", "--yml-files", str(yml_file)]
+                                "sys.argv", ["main.py",
+                                             "--files", str(yml_file)]
                         ):
                             main()
 
