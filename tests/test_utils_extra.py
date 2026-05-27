@@ -5,6 +5,12 @@ import pytest
 from src import utils
 
 
+def _write_file_with_size(path: Path, size_mb: float) -> None:
+    size_bytes = int(size_mb * 1024 * 1024)
+    with path.open("wb") as fh:
+        fh.truncate(size_bytes)
+
+
 def test_check_for_empty_file_whitespace_only_returns_one(tmp_path: Path) -> None:
     f = tmp_path / "blank.yml"
     f.write_text("   \n\t\n", encoding="utf-8")
@@ -17,42 +23,29 @@ def test_count_timeout_returns_none_for_missing_file(tmp_path: Path) -> None:
     assert utils.count_timeout(missing, "yq") is None
 
 
-def test_count_timeout_for_yml2dot_ranges(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    f = tmp_path / "x.yml"
-    f.write_text("name: ci\n", encoding="utf-8")
+def test_count_timeout_for_yml2dot_ranges(tmp_path: Path) -> None:
+    small = tmp_path / "small.yml"
+    medium = tmp_path / "medium.yml"
+    large = tmp_path / "large.yml"
 
-    class FakeStat:
-        def __init__(self, size_mb: float) -> None:
-            self.st_size = int(size_mb * 1024 * 1024)
+    _write_file_with_size(small, 0.4)
+    _write_file_with_size(medium, 1.5)
+    _write_file_with_size(large, 3.5)
 
-    monkeypatch.setattr(
-        Path, "stat", lambda self: FakeStat(0.4), raising=False)
-    assert utils.count_timeout(f, "yml2dot") == 25
-
-    monkeypatch.setattr(
-        Path, "stat", lambda self: FakeStat(1.5), raising=False)
-    assert utils.count_timeout(f, "yml2dot") == 40
-
-    monkeypatch.setattr(
-        Path, "stat", lambda self: FakeStat(3.5), raising=False)
-    assert utils.count_timeout(f, "yml2dot") == 80
+    assert utils.count_timeout(small, "yml2dot") == 25
+    assert utils.count_timeout(medium, "yml2dot") == 40
+    assert utils.count_timeout(large, "yml2dot") == 80
 
 
-def test_count_timeout_for_yq_ranges(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    f = tmp_path / "x.yml"
-    f.write_text("name: ci\n", encoding="utf-8")
+def test_count_timeout_for_yq_ranges(tmp_path: Path) -> None:
+    small = tmp_path / "small.yml"
+    large = tmp_path / "large.yml"
 
-    class FakeStat:
-        def __init__(self, size_mb: float) -> None:
-            self.st_size = int(size_mb * 1024 * 1024)
+    _write_file_with_size(small, 1.0)
+    _write_file_with_size(large, 5.0)
 
-    monkeypatch.setattr(
-        Path, "stat", lambda self: FakeStat(1.0), raising=False)
-    assert utils.count_timeout(f, "yq") == 20
-
-    monkeypatch.setattr(
-        Path, "stat", lambda self: FakeStat(5.0), raising=False)
-    assert utils.count_timeout(f, "yq") == 40
+    assert utils.count_timeout(small, "yq") == 20
+    assert utils.count_timeout(large, "yq") == 40
 
 
 def test_count_timeout_unknown_tool_returns_none(tmp_path: Path) -> None:
