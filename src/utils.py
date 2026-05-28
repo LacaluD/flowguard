@@ -22,10 +22,13 @@ def _collect_yaml_files(
 
     all_files = path.rglob("*.yml"), path.rglob("*.yaml")
 
-    return sorted([
-        f for f in (*all_files[0], *all_files[1])
-        if not any(excluded in f.parents for excluded in excluded_dirs)
-    ])
+    return sorted(
+        [
+            f
+            for f in (*all_files[0], *all_files[1])
+            if not any(excluded in f.parents for excluded in excluded_dirs)
+        ]
+    )
 
 
 def check_for_empty_file(file_path: Path) -> int:

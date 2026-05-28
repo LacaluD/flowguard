@@ -35,18 +35,20 @@ def test_validate_config_read_text_error_returns_one(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda *_: [yml_file])
-    monkeypatch.setattr(main_validation_logic,
-                        "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(
+        main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
+    )
+    monkeypatch.setattr(main_validation_logic, "check_for_empty_file", lambda _: 0)
 
     def raise_read_error(*args, **kwargs):
         raise OSError("cannot read")
 
     monkeypatch.setattr(Path, "read_text", raise_read_error, raising=False)
 
-    assert main_validation_logic.validate_config(
-        tmp_path, Path("yq"), excluded_paths=[]) == 1
+    assert (
+        main_validation_logic.validate_config(tmp_path, Path("yq"), excluded_paths=[])
+        == 1
+    )
 
 
 def test_regular_validation_returns_one_when_build_fails(
@@ -55,12 +57,11 @@ def test_regular_validation_returns_one_when_build_fails(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "validate_config", lambda **_: 0)
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda *_: [yml_file])
-    monkeypatch.setattr(main_validation_logic,
-                        "build_dot_scheme", lambda **_: None)
+    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 0)
+    monkeypatch.setattr(
+        main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
+    )
+    monkeypatch.setattr(main_validation_logic, "build_dot_scheme", lambda **_: None)
 
     assert (
         main_validation_logic.regular_validation(
@@ -79,10 +80,10 @@ def test_regular_validation_returns_zero_on_success(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "validate_config", lambda **_: 0)
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda *_: [yml_file])
+    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 0)
+    monkeypatch.setattr(
+        main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
+    )
     monkeypatch.setattr(
         main_validation_logic,
         "build_dot_scheme",

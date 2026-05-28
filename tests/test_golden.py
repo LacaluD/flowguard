@@ -58,8 +58,7 @@ def run_and_capture(yml_file: Path) -> str:
     with patch("sys.stdout", captured):
         with patch(
             "src.logger.MainLogger.init_logger",
-            side_effect=lambda quiet=False: _configure_test_logging(
-                quiet=quiet),
+            side_effect=lambda quiet=False: _configure_test_logging(quiet=quiet),
         ):
             with patch("main.find_executable", side_effect=lambda _: Path("/bin/tool")):
                 with patch(

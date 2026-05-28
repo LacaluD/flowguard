@@ -51,7 +51,9 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
 
     found_refs = {
         parsed
-        for raw_ref in re.findall(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+){0,2}@[^\s\"']+", content)
+        for raw_ref in re.findall(
+            r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+){0,2}@[^\s\"']+", content
+        )
         for parsed in [_normalize_action_ref(raw_ref)]
         if parsed is not None
     }
@@ -62,8 +64,7 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
             continue
 
         if parsed_deprecated in found_refs:
-            logger.warning(
-                f"{file_path} uses deprecated action '{deprecated}'")
+            logger.warning(f"{file_path} uses deprecated action '{deprecated}'")
             issues += 1
 
     return issues
@@ -94,8 +95,7 @@ def run_yq(
         if expression != ".":
             if output in ("", "null", "false"):
                 if optional:
-                    logger.warning(
-                        f"{fpath}: {description} skipped (not present)")
+                    logger.warning(f"{fpath}: {description} skipped (not present)")
                     return 0
                 logger.error(f"{fpath}: {description} missing")
                 return 1
@@ -155,7 +155,10 @@ def check_indentation(file_path: Path) -> int:
 
 
 def validate_config(
-    yml_path: Path, yq_exec: Path, excluded_paths: list[Path], run_optional: bool = False
+    yml_path: Path,
+    yq_exec: Path,
+    excluded_paths: list[Path],
+    run_optional: bool = False,
 ) -> TypeError | int:
     """Validate YAML files and return validated files, or None on validation failure."""
     if not isinstance(yml_path, Path):
@@ -202,8 +205,7 @@ def validate_config(
         cfg_error_qty = total_errors - errors_before
         logger.info(f"{'=' * 60}")
         if cfg_error_qty > 0:
-            logger.warning(
-                f"Errors found in {file_path} - {cfg_error_qty}\n\n")
+            logger.warning(f"Errors found in {file_path} - {cfg_error_qty}\n\n")
         else:
             logger.success(f"Did not found errors in {file_path}\n\n")
 
@@ -253,7 +255,11 @@ def run_yq_in_threadpool(fpath: Path, yq_exec: Path, run_optional: bool = True) 
 
 
 def regular_validation(
-    cfg_files: Path, yq_exe: Path, excluded_paths: list[Path], yml2dot_exe: Path, run_optional: bool = False
+    cfg_files: Path,
+    yq_exe: Path,
+    excluded_paths: list[Path],
+    yml2dot_exe: Path,
+    run_optional: bool = False,
 ) -> int:
     """Run the non-schema validation pipeline and diagram generation.
 
@@ -269,10 +275,13 @@ def regular_validation(
         0 when validation and diagram generation succeed.
         1 when validation fails or diagram generation fails.
     """
-    logger.info(
-        f"Running validate config task with optional checks: {run_optional}")
-    res = validate_config(yml_path=cfg_files, yq_exec=yq_exe,
-                          run_optional=run_optional, excluded_paths=excluded_paths)
+    logger.info(f"Running validate config task with optional checks: {run_optional}")
+    res = validate_config(
+        yml_path=cfg_files,
+        yq_exec=yq_exe,
+        run_optional=run_optional,
+        excluded_paths=excluded_paths,
+    )
     if res != 0:
         logger.error("Validation failed")
         return 1
@@ -282,8 +291,7 @@ def regular_validation(
         yml2dot_exec=yml2dot_exe,
     )
     if output_file is not None:
-        logger.info(
-            f"Successfully built dot schema, check results: {output_file}")
+        logger.info(f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         logger.info(f"{'-' * 60}")
         return 0
