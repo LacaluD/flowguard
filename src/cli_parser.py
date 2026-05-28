@@ -2,6 +2,7 @@
 
 import sys
 import argparse
+from collections.abc import Sequence
 from pathlib import Path
 
 from src.constants import OPTIONAL_CHECKS, EXTENDED_CHECKS, PROJECT_DESCRIPTION
@@ -15,7 +16,11 @@ class _CompatArgumentParser(argparse.ArgumentParser):
     legacy behavior expected by the main validation pipeline and tests.
     """
 
-    def parse_args(self, args=None, namespace=None):  # type: ignore[override]
+    def parse_args(  # type: ignore[override]
+        self,
+        args: Sequence[str] | None = None,
+        namespace: argparse.Namespace | None = None,
+    ) -> argparse.Namespace:
         parsed = super().parse_args(args=args, namespace=namespace)
         files = getattr(parsed, "files", None)
         if isinstance(files, list) and len(files) == 1:

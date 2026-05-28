@@ -281,7 +281,22 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Send telegram message
+      - name: Download all reports artifact
+        if: failure()
+        uses: actions/download-artifact@v8
+        with:
+          name: all-reports
+          path: ./reports
+
+      - name: Zip reports
+        if: failure()
+        run: |
+          if ls reports/* 1> /dev/null 2>&1; then
+            zip -j reports/all-reports.zip reports/*.txt reports/*.json reports/*.xml || true
+          fi
+
+      - name: Send success telegram message
+        if: success()
         uses: cbrgm/telegram-github-action@v1
         with:
           token: ${{ secrets.TG_BOT_TOKEN }}
@@ -294,4 +309,22 @@ jobs:
             Commit: [${{ github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
             Author Name: ${{ github.actor }}
 
-            Security checks have completed!
+            ✅ Security checks have completed successfully!
+
+      - name: Send failure telegram message
+        if: failure()
+        uses: cbrgm/telegram-github-action@v1
+        with:
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          to: ${{ secrets.TG_CHAT_ID }}
+          media: ./reports/all-reports.zip
+          media-type: document
+          disable-web-page-preview: true
+          message: |
+            **Rep. Name:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+
+            Branch: `${{ github.ref_name }}`
+            Commit: [${{ github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            Author Name: ${{ github.actor }}
+
+            ❌ Security checks have failed!

@@ -11,7 +11,7 @@ import sys
 
 from version import __version__, __build__, __commit__
 from src.platform_checks import find_executable, find_executable_recursive
-from src.validation_by_schema import validate_against_schema, validate_custom_pipeline
+from src.validation_by_schema import validate_custom_pipeline
 from src.main_validation_logic import regular_validation
 from src.diff_visualizer import visualize_cfgs
 from src.cli_parser import _build_parser, show_list_checks, show_description, show_version
@@ -91,6 +91,9 @@ def main() -> int:
         )
 
     if difference:
+        if dot_exe is None:
+            logger.error("dot executable is missing")
+            return 1
         logger.info("Building config difference visualization...")
         files_for_diff = input_files if isinstance(
             input_files, list) else [input_files]
@@ -100,6 +103,8 @@ def main() -> int:
             output_format=getattr(args, "output_format", "svg"),
             dot_exec=dot_exe,
         )
+
+    return 0
 
 
 if __name__ == "__main__":

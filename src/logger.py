@@ -6,7 +6,7 @@ import sys
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Final
+from typing import Any, Callable, Final, cast
 
 from loguru import logger as _base_loguru_logger
 
@@ -191,7 +191,7 @@ class StdlibLikeLoguruAdapter:
         return StdlibLikeLoguruAdapter(self._logger.bind(**kwargs))
 
     def __getattr__(self, name: str) -> Callable[..., Any]:
-        return getattr(self._logger, name)
+        return cast(Callable[..., Any], getattr(self._logger, name))
 
 
 class MainLogger:
