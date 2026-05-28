@@ -1,6 +1,7 @@
 [project]
 dependencies = [
     "jsonschema>=4.0",
+    "loguru>=0.7.3",
     "PyYAML>=6.0",
 ]
 

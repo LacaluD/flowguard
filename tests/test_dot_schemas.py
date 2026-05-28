@@ -9,7 +9,6 @@ from src import dot_schemas
 def test_build_dot_scheme_returns_none_when_yml2dot_fails_with_stderr(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
@@ -24,13 +23,15 @@ def test_build_dot_scheme_returns_none_when_yml2dot_fails_with_stderr(
         )
 
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
+    errors: list[str] = []
+    monkeypatch.setattr(dot_schemas.logger, "error",
+                        lambda message: errors.append(str(message)))
 
-    with caplog.at_level("ERROR"):
-        result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
+    result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
 
     assert result is None
-    assert "yml2dot failed" in caplog.text
-    assert "yml2dot stderr: yml2dot parse failed" in caplog.text
+    assert any("yml2dot failed" in msg for msg in errors)
+    assert any("yml2dot stderr: yml2dot parse failed" in msg for msg in errors)
 
 
 def test_build_dot_scheme_does_not_call_dot_when_yml2dot_failed(
@@ -80,7 +81,6 @@ def test_build_dot_scheme_returns_none_on_timeout(
 def test_build_dot_scheme_logs_dot_stderr_when_dot_fails(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
@@ -103,9 +103,11 @@ def test_build_dot_scheme_logs_dot_stderr_when_dot_fails(
         )
 
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
+    errors: list[str] = []
+    monkeypatch.setattr(dot_schemas.logger, "error",
+                        lambda message: errors.append(str(message)))
 
-    with caplog.at_level("ERROR"):
-        result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
+    result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
 
     assert result is None
-    assert "dot stderr: dot failed as text" in caplog.text
+    assert any("dot stderr: dot failed as text" in msg for msg in errors)

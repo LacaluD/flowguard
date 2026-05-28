@@ -20,8 +20,7 @@ from collections.abc import Mapping, Sequence
 import subprocess
 import hashlib
 
-import logging
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 SUPPORTED_EXT = {".yml", ".yaml", ".json", ".toml"}
@@ -307,8 +306,7 @@ def get_cfg_difference(
     Returns:
         Exit code: 0 on success, 1 on failure.
     """
-    logger.info("Got file formats: %s, %s. Output format: %s",
-                fst_file.suffix, sec_file.suffix, output_format)
+    logger.info(f"Got file formats: {fst_file.suffix}, {sec_file.suffix}. Output format: {output_format}")
     fst_data = _parse_file(fst_file)
     sec_data = _parse_file(sec_file)
 
@@ -333,7 +331,7 @@ def get_cfg_difference(
     dot_file.write_text(dot_source, encoding="utf-8")
 
     if output_format == "dot":
-        logger.info("dot saved: %s", dot_file)
+        logger.info(f"dot saved: {dot_file}")
         return 0
 
     result = subprocess.run(
@@ -344,14 +342,14 @@ def get_cfg_difference(
         check=False,
     )
     if result.returncode != 0:
-        logger.error("dot STDERR: %s", result.stderr)
+        logger.error(f"dot STDERR: {result.stderr}")
         dot_file.unlink(missing_ok=True)
         return 1
 
-    logger.debug("dot task finished with returcode:%s", result.returncode)
+    logger.debug(f"dot task finished with returcode:{result.returncode}")
 
     dot_file.unlink(missing_ok=True)
-    logger.info("%s saved: %s", output_format, output_file)
+    logger.info(f"{output_format} saved: {output_file}")
     return 0
 
 

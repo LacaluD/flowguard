@@ -1,62 +1,97 @@
-# Project Goal
+# flowguard
 
 [![CI](https://img.shields.io/github/actions/workflow/status/LacaluD/YML-Validator-Scheme-converter/security_audit.yml?branch=main&label=CI)](https://github.com/LacaluD/YML-Validator-Scheme-converter/actions/workflows/security_audit.yml)
 [![Coverage](https://codecov.io/gh/LacaluD/YML-Validator-Scheme-converter/graph/badge.svg?branch=main)](https://codecov.io/gh/LacaluD/YML-Validator-Scheme-converter)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+flowguard is a CLI tool for configuration validation and structure visualization.
 
-YMLValidator is a command-line tool that validates YAML configuration files and builds visual pipeline diagrams.
-It helps teams catch broken workflow files early and quickly understand pipeline structure.
+It helps teams:
+- validate YAML files in CI with predictable exit codes,
+- enforce required and optional checks via yq expressions,
+- validate against JSON Schema,
+- generate visual graphs from YAML configs and config diffs.
+
+## What flowguard does
+
+flowguard is designed for repositories where configuration quality directly impacts delivery reliability.
+It combines three layers of protection in one command:
+
+1. Syntax and structural validation:
+Checks YAML syntax and required fields with yq expressions, plus optional consistency checks.
+
+2. Contract validation:
+Validates files against JSON Schema to enforce domain rules and catch incompatible config changes early.
+
+3. Visualization:
+Builds graph outputs from YAML configs and from config-to-config diffs to simplify review and debugging.
+
+In practice, flowguard is useful as:
+- a pre-commit or pre-push local validator,
+- a CI quality gate for pull requests,
+- a troubleshooting helper when changing workflows, pipelines, or deployment manifests.
+
+Key operational behavior:
+- deterministic exit codes (0 success, 1 failure),
+- `--quiet` mode for cleaner CI logs,
+- separation of warning/error output and regular output,
+- automatic external binary discovery with optional recursive fallback in custom directories.
 
 ## Demo
 
-![YMLValidator demo](docs/assets/demo.gif)
+![flowguard demo](docs/assets/demo.gif)
 
-## Features
-The project uses [yq](https://github.com/mikefarah/yq) for parsing/validation and [yml2dot](https://github.com/lucasepe/yml2dot) + Graphviz `dot` for diagram generation.
+## Core capabilities
 
-- Validate one YAML file or all YAML files inside a directory (recursive search)
-- Run base YAML syntax checks through `yq`
-- Run configurable required-field checks (for example `.jobs.*.steps`)
+- Validate one file or recursively process a directory
+- Run required and optional yq checks over YAML structure
 - Detect deprecated GitHub Actions references
-- Validate indentation and whitespace formatting rules
-- Generate `.png` diagrams from validated YAML files
-- Search external binaries automatically and optionally recurse through a custom folder
+- Validate indentation and whitespace issues
+- Validate YAML against JSON Schema
+- Build diagrams from YAML via yml2dot and Graphviz
+- Build config difference graphs in svg, png, or dot format
+- Discover external binaries automatically, with optional recursive search in custom folder
 
-## Dependencies
-Python dependencies:
+## Requirements
 
+Python:
 - Python 3.10+
-- `PyYAML` (YAML parsing)
-- `jsonschema` (schema-based validation)
+- PyYAML
+- jsonschema
+- loguru
 
-External CLI tools:
-
-- `yq` (required)
-- `yml2dot` (required)
-- `dot` from Graphviz (required for PNG output)
+External tools:
+- yq
+- yml2dot
+- Graphviz dot
 
 ## Installation
+
 ### 1. Clone repository
+
 ```bash
 git clone https://github.com/LacaluD/YML-Validator-Scheme-converter.git
 cd YML-Validator-Scheme-converter
 ```
 
-### 2. Create and activate virtual environment
+### 2. Create virtual environment
+
 macOS/Linux:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-Windows (PowerShell):
+Windows PowerShell:
+
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
 ### 3. Install Python dependencies
+
 ```bash
 pip install -r requirements.txt
 # or
@@ -64,213 +99,195 @@ pip install ".[dev]"
 ```
 
 ### 4. Install external binaries
+
 macOS (Homebrew):
+
 ```bash
 brew install yq graphviz
-
-# yml2dot is distributed via GitHub Releases
-# download the macOS binary and place it in PATH, for example:
-sudo mv ./yml2dot /usr/local/bin/yml2dot
-sudo chmod +x /usr/local/bin/yml2dot
+# install yml2dot from release page and add it to PATH
 ```
 
 Ubuntu/Debian:
+
 ```bash
 sudo apt update
 sudo apt install -y yq graphviz
-
-# yml2dot is distributed via GitHub Releases
-# download the Linux binary and place it in PATH, for example:
-sudo mv ./yml2dot /usr/local/bin/yml2dot
-sudo chmod +x /usr/local/bin/yml2dot
+# install yml2dot from release page and add it to PATH
 ```
 
 Windows:
+- Install yq
+- Install Graphviz
+- Install yml2dot
+- Ensure yq, yml2dot, dot are available in PATH
 
-1. Install `yq` from the official release page or package manager.
-2. Install [Graphviz](https://graphviz.org/download/).
-3. Install [yml2dot](https://github.com/lucasepe/yml2dot/releases) and ensure `yq`, `yml2dot`, and `dot` are available in `PATH`.
+Quick check:
 
-Quick check (macOS/Linux):
 ```bash
 command -v yq
 command -v yml2dot
 command -v dot
 ```
 
-### 5. Run tool
-Validate one file:
+## CLI usage
+
+Basic validation:
+
 ```bash
-python main.py --files test.yml
+python main.py --files demo/demo_small_v2.yml
 ```
 
-Validate all YAML files in directory:
+Directory validation:
+
 ```bash
 python main.py --files .
 ```
 
-Run with additional recursive binary lookup:
+Validation with recursive binary fallback directory:
+
 ```bash
 python main.py --files . --exec-dir /path/to/tools
 ```
 
-Run schema-based validation:
+Schema validation pipeline:
+
 ```bash
 python main.py --files schema_examples/schema_example_valid.yml --schema schema_examples/schema_example.json
 ```
 
-### How to write your own schema
-See [Schema Guide](docs/schema-guide.md) for writing your own validation schemas.
+Disable optional checks:
 
-### Frequent validator error messages
+```bash
+python main.py --files demo/demo_small_v2.yml --no-optional-checks
+```
 
-| Error message (example) | Typical cause | How to fix |
-|------|------|------|
-| `'<path>' is neither a file nor directory` | Wrong value in `--files` (typo, wrong relative path, file moved). | Check path from repository root, then run again: `python main.py --files <existing-file-or-dir>`. |
-| `<file>.yml: Additional properties are not allowed (True was unexpected) at []` | In YAML, unquoted `on:` can be parsed as boolean `true` by PyYAML. | Quote the key in configs and schemas: `"on":` instead of `on:`. |
-| `<file>.yml uses deprecated action 'checkout@v4'` | Workflow references deprecated action version from the project deny-list. | Replace with supported version, for example `actions/checkout@v5`, then rerun validation. |
+Difference visualization:
+
+```bash
+python main.py --files demo/demo_small.yml demo/demo_small_v2.yml --difference --output-format svg
+```
+
+Quiet mode:
+
+```bash
+python main.py --quiet --files demo/demo_small_v2.yml
+```
+
+Help commands:
+
+```bash
+python main.py --list-checks
+python main.py --description
+python main.py --version
+```
+
+## Exit codes
+
+- 0: success
+- 1: validation or runtime failure
+
+This behavior is designed for CI-friendly pipeline integration.
 
 ## Logging
-The project uses Python built-in `logging` with both console and rotating file output.
 
-Default behavior:
+flowguard uses loguru with three sinks:
+- stderr for warning and error logs
+- stdout for debug/info/success logs
+- rotating file logs in logs/main.log (configurable)
 
-- `INFO`/`DEBUG` logs are written to `stdout`
-- `WARNING`/`ERROR`/`CRITICAL` logs are written to `stderr`
-- With `--quiet`, normal informational console output is suppressed
-- File logs are written to `logs/main.log`
-- File rotation is enabled via `TimedRotatingFileHandler`
+Environment variables:
+- LOG_LEVEL
+- LOG_FILE_LEVEL
+- EXTERNAL_LOG_LEVEL
+- LOG_DIR
+- LOG_FILE_NAME
 
-Examples:
+Example:
 
-macOS/Linux:
 ```bash
 export LOG_LEVEL=DEBUG
 export LOG_FILE_LEVEL=INFO
 export LOG_DIR=./logs
 export LOG_FILE_NAME=validator.log
-python main.py --files test.yml
+python main.py --files demo/demo_small_v2.yml
 ```
 
-Windows PowerShell:
-```powershell
-$env:LOG_LEVEL = "DEBUG"
-$env:LOG_FILE_LEVEL = "INFO"
-$env:LOG_DIR = ".\\logs"
-$env:LOG_FILE_NAME = "validator.log"
-python main.py --files test.yml
-```
+## Schema guide
+
+See [docs/schema_guide.md](docs/schema_guide.md) for writing and applying custom schemas.
 
 ## Testing
-The project test suite is based on `pytest` and covers both business logic and CLI behavior.
 
-Current test coverage includes:
+Run all tests:
 
-- Unit tests for core validators and utility functions
-- Integration tests for the main validation pipeline with mocked external binaries
-- Schema-validation tests for valid/invalid schemas and YAML files
-- Corner-case tests: Unicode, BOM, CRLF/LF, tabs, mixed indentation, empty values, deeply nested YAML
-- CLI output stream checks using `capsys` (`stdout` vs `stderr`)
-
-### Edge Cases
-
-The validator is tested against real-world YAML quirks:
-
-| Case | Behavior |
-|------|----------|
-| UTF-8 Unicode (Cyrillic, Japanese, etc.) | ✅ Supported |
-| BOM (Byte Order Mark) | ✅ Supported |
-| CRLF line endings (Windows) | ✅ Supported |
-| Tabs instead of spaces | ❌ Rejected (invalid YAML) |
-| Mixed indentation | ❌ Rejected (invalid YAML) |
-| Empty values (`null`, blank) | ✅ Supported |
-| Deeply nested structures (50+ levels) | ✅ Supported |
-
-Run tests locally:
 ```bash
 python -m pytest -q -c configs/pytest.ini
 ```
 
-Run tests with coverage:
+Run with coverage:
+
 ```bash
 python -m coverage run -m pytest -q -c configs/pytest.ini
 python -m coverage report --fail-under=90
 ```
 
-Run golden-file checks:
+Run golden tests:
+
 ```bash
 python -m pytest -q tests/test_golden.py -c configs/pytest.ini
 ```
 
 Update golden baselines:
+
 ```bash
 python -m pytest -q tests/test_golden.py -c configs/pytest.ini --update-golden
 ```
 
-CI notes:
+## Common errors
 
-- Test job runs on each push/PR to `main`
-- Coverage threshold is configured as `90%` in project coverage settings
-- Coverage report is uploaded as a CI artifact
+| Message | Typical cause | Fix |
+|---|---|---|
+| '<path>' is neither a file nor directory | Wrong --files path | Check path and rerun |
+| No YAML files found | Empty folder or no .yml/.yaml files | Point --files to valid file/folder |
+| Not all required executables were found | Missing yq, yml2dot, or dot | Install missing binaries or pass --exec-dir |
+| Additional properties are not allowed (True was unexpected) | Unquoted on key parsed as boolean in YAML | Use "on" key in config/schema |
 
-## Project Structure
+## Project layout
+
 ```text
-YMLValidator/
-├─ .github/                  # CI workflows
-├─ docs/					 # project documentation
-│
-├─ configs/
-│  ├─ pytest.ini             # Pytest configuration
-│  ├─ mypy.ini             # Mypy configuration
-│  └─ bandit.yml             # Bandit configuration
-│
-├─ schema_examples/         # Example JSON schemas
-│
+.
+├─ main.py
 ├─ src/
-│  ├─ cli_parser.py            # CLI argument parser
-│  ├─ constants.py             # Validation constants/config values
-│  ├─ logger.py                # Project logging setup
-│  ├─ main_validation_logic.py # YAML validation + diagram generation
-│  ├─ platform_checks.py       # Cross-platform executable discovery
-│  ├─ utils.py                 # Shared file collection and file checks
-│  └─ validation_by_schema.py  # JSON Schema validation pipeline
-│
+│  ├─ cli_parser.py
+│  ├─ constants.py
+│  ├─ logger.py
+│  ├─ main_validation_logic.py
+│  ├─ diff_visualizer.py
+│  ├─ validation_by_schema.py
+│  ├─ platform_checks.py
+│  └─ utils.py
 ├─ tests/
-│	├─ conftest.py              # Custom pytest flags (including --update-golden)
-│	├─ golden/                  # Golden-file inputs/expected outputs └─
-│	...
-│
-├─ main.py                  # CLI entry point
-├─ version.py               # version storage
-├─ .gitignore               # .gitignore
-├─ pyproject.toml           # Project metadata and tooling config
-├─ requirements.txt         # Requirements storage
-├─ requirements.in
-├─ README.md
-├─ LICENSE
+├─ configs/
+├─ docs/
+└─ schema_examples/
 ```
 
-## TODO
+## Status
 
-- In Progress - Difference visualization
-- Polishing codebase
-- Add configuration file support for validation rules
-- Provide packaged releases for Windows/macOS/Linux
-- Add smoke integration with real binaries in CI
+Implemented:
+- CI-friendly output and exit codes
+- JSON Schema validation
+- Batch mode and recursive search
+- Golden integration tests
+- Corner-case YAML tests (Unicode, BOM, CRLF, indentation)
+- Coverage threshold in CI
 
-## Nice to have
+Planned:
 
-- Watch-mode
-- Mutation testing via mutmut
-- Smoke integration with real binaries in CI
+- Better graph features for specific jobs/sections
+- Relationship-focused visualization
+- Additional output/reporting improvements
 
-## DONE
-
-- [x] Refactored main pipelines
-- [x] Fixed Security-checks
-- [x] Added golden-file integration tests with fixtures in `tests/golden/`
-- [x] Added CI-friendly output
-- [x] Added JSON Schema validation
-- [x] Added Batch-mode + recursive search in provided directory
-- [x] Added coverage metrics with 90% threshold enforced in CI
-- [x] Added corner-case tests: Unicode, BOM, CRLF/LF, tabs and mixed indentation
+- visualize per-job graphs and inter-job dependencies,
+- render YAML anchors, references, and nested relationships,
+- supports YAML and JSON as input formats.

@@ -1,4 +1,4 @@
-INFO: Starting YMLValidator 0.0.2 (build __dev__, commit __dev__)
+INFO: Starting flowguard 0.0.2 (build __dev__, commit __dev__)
 INFO: All required executables were found
 INFO: yq: /bin/tool
 INFO: yml2dot: /bin/tool

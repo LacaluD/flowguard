@@ -1,32 +1,31 @@
 """CLI entry point for the YAML validation and diagram generation pipeline.
 
-The script validates one YAML file or an entire directory of YAML files with
+The script validates one config file or an entire directory of YAML files with
 `yq`, then optionally generates PNG diagrams using `yml2dot` + Graphviz `dot`.
 Executable discovery is performed automatically and can be extended with a
 user-provided search directory.
 """
 
+
+import sys
+
 from version import __version__, __build__, __commit__
 from src.platform_checks import find_executable, find_executable_recursive
-from src.validation_by_schema import validate_against_schema
+from src.validation_by_schema import validate_against_schema, validate_custom_pipeline
 from src.main_validation_logic import regular_validation
 from src.diff_visualizer import visualize_cfgs
-from src.cli_parser import _build_parser
+from src.cli_parser import _build_parser, show_list_checks, show_description, show_version
 from src.logger import MainLogger
-import sys
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 def main() -> int:
     """Run the validation pipeline and return a process exit code."""
     args = _build_parser().parse_args()
-    MainLogger().init_logger(quiet=getattr(args, "quiet", False))
+    logger = MainLogger().init_logger(quiet=getattr(args, "quiet", False))
 
     # log what version and build is currently running
     logger.info(
-        f"Starting YMLValidator {__version__} (build {__build__}, commit {__commit__})"
+        f"Starting flowguard {__version__} (build {__build__}, commit {__commit__})"
     )
     input_files = args.files
     difference = getattr(args, "difference", False)
@@ -39,6 +38,15 @@ def main() -> int:
     yq_exe = find_executable(yq_filename)
     yml2_dot_exe = find_executable(yml2_filename)
     dot_exe = find_executable(dot_filename) if difference else None
+
+    if args.list_checks:
+        return show_list_checks()
+
+    if args.description:
+        return show_description()
+
+    if args.version:
+        return show_version()
 
     # If a custom directory is provided, perform recursive fallback search.
     if args.exec_dir:
@@ -57,25 +65,29 @@ def main() -> int:
 
     if not yq_exe or not yml2_dot_exe or (difference and not dot_exe):
         logger.error("Not all required executables were found")
-        logger.error("yq: %s", yq_exe)
-        logger.error("yml2dot: %s", yml2_dot_exe)
+        logger.error(f"yq: {yq_exe}")
+        logger.error(f"yml2dot: {yml2_dot_exe}")
         if difference:
-            logger.error("dot: %s", dot_exe)
+            logger.error(f"dot: {dot_exe}")
         return 1
 
     logger.info("All required executables were found")
-    logger.info("yq: %s", yq_exe)
-    logger.info("yml2dot: %s", yml2_dot_exe)
+    logger.info(f"yq: {yq_exe}")
+    logger.info(f"yml2dot: {yml2_dot_exe}")
     if difference:
-        logger.info("dot: %s", dot_exe)
+        logger.info(f"dot: {dot_exe}")
 
     if args.schema:
         logger.info("Launching validation process with schema")
-        return validate_against_schema(yml_path=input_files, schema_file=args.schema)
+        return validate_custom_pipeline(
+            cfg_files=input_files,
+            val_schema=args.schema,
+            yml2dot_exe=yml2_dot_exe,
+        )
     elif not args.schema and not difference:
         logger.info("Launching validation process without schema")
         return regular_validation(
-            yml_files=input_files, yq_exe=yq_exe, yml2dot_exe=yml2_dot_exe
+            cfg_files=input_files, yq_exe=yq_exe, yml2dot_exe=yml2_dot_exe, run_optional=not args.no_optional_checks
         )
 
     if difference:

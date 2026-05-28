@@ -1,4 +1,7 @@
 import logging
+import sys
+import types
+import importlib.util
 from pathlib import Path
 
 import pytest
@@ -70,7 +73,8 @@ def test_resolve_level_valid_name_returns_expected_level() -> None:
 
 
 def test_resolve_level_invalid_name_returns_fallback_and_warning() -> None:
-    level, warning = logger_module._resolve_level("bad-level", fallback=logging.INFO)
+    level, warning = logger_module._resolve_level(
+        "bad-level", fallback=logging.INFO)
 
     assert level == logging.INFO
     assert warning is not None
@@ -138,7 +142,7 @@ def test_resolve_file_log_level_returns_warning_for_invalid_level(
     assert warning is not None
 
 
-def test_init_logger_configures_handlers_and_is_idempotent(
+def test_init_logger_configures_loguru_sinks_and_is_idempotent(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
@@ -147,29 +151,34 @@ def test_init_logger_configures_handlers_and_is_idempotent(
     monkeypatch.setenv("LOG_FILE_LEVEL", "INFO")
     logger_module.MainLogger._configured = False
 
+    add_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+    remove_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def fake_add(*args: object, **kwargs: object) -> int:
+        add_calls.append((args, kwargs))
+        return len(add_calls)
+
+    def fake_remove(*args: object, **kwargs: object) -> None:
+        remove_calls.append((args, kwargs))
+
+    monkeypatch.setattr(logger_module.LOGURU_LOGGER, "add", fake_add)
+    monkeypatch.setattr(logger_module.LOGURU_LOGGER, "remove", fake_remove)
+
     main_logger = logger_module.MainLogger("test.init_logger")
     configured_once = main_logger.init_logger()
     configured_twice = main_logger.init_logger()
 
-    root_logger = logging.getLogger()
-
     assert configured_once is configured_twice
     assert logger_module.MainLogger._configured is True
-    assert len(root_logger.handlers) == 3
-    assert any(
-        isinstance(h, logging.StreamHandler)
-        and getattr(h, "stream", None) is logger_module.sys.stderr
-        for h in root_logger.handlers
-    )
-    assert any(
-        isinstance(h, logging.StreamHandler)
-        and getattr(h, "stream", None) is logger_module.sys.stdout
-        for h in root_logger.handlers
-    )
-    assert any(
-        isinstance(h, logger_module.TimedRotatingFileHandler)
-        for h in root_logger.handlers
-    )
+    assert len(remove_calls) == 1
+    assert len(add_calls) == 3
+    assert add_calls[0][0][0] is logger_module.sys.stderr
+    assert add_calls[0][1]["level"] == "WARNING"
+    assert add_calls[1][0][0] is logger_module.sys.stdout
+    assert add_calls[1][1]["level"] == "DEBUG"
+    assert callable(add_calls[1][1]["filter"])
+    assert add_calls[2][0][0] == str(main_logger.log_file_path)
+    assert add_calls[2][1]["level"] == "INFO"
 
 
 def test_init_logger_quiet_mode_reduces_console_noise(
@@ -179,27 +188,23 @@ def test_init_logger_quiet_mode_reduces_console_noise(
     monkeypatch.setenv("LOG_FILE_NAME", "main.log")
     logger_module.MainLogger._configured = False
 
+    add_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def fake_add(*args: object, **kwargs: object) -> int:
+        add_calls.append((args, kwargs))
+        return len(add_calls)
+
+    monkeypatch.setattr(logger_module.LOGURU_LOGGER, "add", fake_add)
+    monkeypatch.setattr(logger_module.LOGURU_LOGGER,
+                        "remove", lambda *a, **k: None)
+
     main_logger = logger_module.MainLogger("test.init_logger.quiet")
     main_logger.init_logger(quiet=True)
-
-    root_logger = logging.getLogger()
-    stderr_handlers = [
-        h
-        for h in root_logger.handlers
-        if isinstance(h, logging.StreamHandler)
-        and getattr(h, "stream", None) is logger_module.sys.stderr
-    ]
-    stdout_handlers = [
-        h
-        for h in root_logger.handlers
-        if isinstance(h, logging.StreamHandler)
-        and getattr(h, "stream", None) is logger_module.sys.stdout
-    ]
-
-    assert len(stderr_handlers) == 1
-    assert len(stdout_handlers) == 1
-    assert stderr_handlers[0].level == logging.ERROR
-    assert stdout_handlers[0].level > logging.CRITICAL
+    assert len(add_calls) == 3
+    assert add_calls[0][0][0] is logger_module.sys.stderr
+    assert add_calls[0][1]["level"] == "ERROR"
+    assert add_calls[1][0][0] is logger_module.sys.stdout
+    assert add_calls[1][1]["level"] == "SUCCESS"
 
 
 def test_main_logger_wrapper_log_exception_short_logs_message(
@@ -227,3 +232,153 @@ def test_main_logger_wrapper_format_exception_short_returns_text() -> None:
     result = main_logger.format_exception_short(Exception("wrapped"), limit=1)
 
     assert result == "Exception: wrapped"
+
+
+def test_format_exception_short_when_extracted_traceback_is_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    try:
+        _raise_value_error()
+    except ValueError as exc:
+        monkeypatch.setattr(logger_module.traceback,
+                            "extract_tb", lambda _tb: [])
+        result = logger_module.format_exception_short(exc, limit=1)
+
+    assert result == "ValueError: boom"
+
+
+def test_format_exception_short_falls_back_to_absolute_filename(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    try:
+        _raise_value_error()
+    except ValueError as exc:
+        monkeypatch.setattr(logger_module.Path, "cwd",
+                            lambda: Path("/__not_matching_cwd__"))
+        result = logger_module.format_exception_short(exc, limit=1)
+
+    assert "ValueError: boom" in result
+    assert '"' in result
+
+
+def test_level_no_to_name_handles_success_and_unknown() -> None:
+    assert logger_module._level_no_to_name(logger_module.SUCCESS) == "SUCCESS"
+    assert logger_module._level_no_to_name(12345) == "INFO"
+
+
+def test_render_stdlib_message_falls_back_when_percent_format_invalid() -> None:
+    rendered = logger_module._render_stdlib_message("value=%d", ("oops",))
+
+    assert rendered == "value=%d oops"
+
+
+def test_stdlib_like_loguru_adapter_methods_delegate_correctly() -> None:
+    class FakeBoundLogger:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, object]] = []
+
+        def debug(self, text: str) -> None:
+            self.calls.append(("debug", text))
+
+        def info(self, text: str) -> None:
+            self.calls.append(("info", text))
+
+        def warning(self, text: str) -> None:
+            self.calls.append(("warning", text))
+
+        def error(self, text: str) -> None:
+            self.calls.append(("error", text))
+
+        def critical(self, text: str) -> None:
+            self.calls.append(("critical", text))
+
+        def success(self, text: str) -> None:
+            self.calls.append(("success", text))
+
+        def log(self, level: str, text: str) -> None:
+            self.calls.append((f"log:{level}", text))
+
+        def bind(self, **kwargs: object) -> "FakeBoundLogger":
+            self.calls.append(("bind", kwargs))
+            return self
+
+        def opt(self, exception: bool = False) -> "FakeBoundLogger":
+            self.calls.append(("opt", exception))
+            return self
+
+        def custom_method(self) -> str:
+            return "ok"
+
+    fake = FakeBoundLogger()
+    adapter = logger_module.StdlibLikeLoguruAdapter(fake)
+
+    adapter.warning("w=%s", "1")
+    adapter.critical("c=%s", "2")
+    adapter.success("s=%s", "3")
+    adapter.exception("ex=%s", "4")
+    adapter.log("info", "i=%s", "5")
+    rebound = adapter.bind(extra="x")
+
+    assert isinstance(rebound, logger_module.StdlibLikeLoguruAdapter)
+    assert ("warning", "w=1") in fake.calls
+    assert ("critical", "c=2") in fake.calls
+    assert ("success", "s=3") in fake.calls
+    assert ("opt", True) in fake.calls
+    assert ("error", "ex=4") in fake.calls
+    assert ("log:INFO", "i=5") in fake.calls
+    assert adapter.custom_method() == "ok"
+
+
+def test_init_logger_emits_invalid_level_warnings(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.setenv("LOG_FILE_NAME", "main.log")
+    monkeypatch.setenv("LOG_LEVEL", "bad-console")
+    monkeypatch.setenv("LOG_FILE_LEVEL", "bad-file")
+    logger_module.MainLogger._configured = False
+
+    messages: list[str] = []
+    monkeypatch.setattr(
+        logger_module.StdlibLikeLoguruAdapter,
+        "warning",
+        lambda self, message, *args, **kwargs: messages.append(str(message)),
+    )
+
+    logger_module.MainLogger("test.invalid.levels").init_logger()
+
+    assert len(messages) >= 2
+    assert "Invalid log level 'bad-console'" in "\n".join(messages)
+    assert "Invalid log level 'bad-file'" in "\n".join(messages)
+
+
+def test_logger_module_import_executes_success_level_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    module_path = Path(__file__).resolve().parents[1] / "src" / "logger.py"
+
+    class FakeLogger:
+        def __init__(self) -> None:
+            self.fallback_calls: list[tuple[str, dict[str, object]]] = []
+
+        def patch(self, _func):
+            return self
+
+        def level(self, name: str, **kwargs):
+            if name == "SUCCESS" and not kwargs:
+                raise ValueError("missing")
+            self.fallback_calls.append((name, kwargs))
+
+    fake_logger = FakeLogger()
+    fake_loguru = types.ModuleType("loguru")
+    fake_loguru.logger = fake_logger  # type: ignore[attr-defined]
+
+    monkeypatch.setitem(sys.modules, "loguru", fake_loguru)
+
+    spec = importlib.util.spec_from_file_location(
+        "logger_cov_import_test", module_path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert ("SUCCESS", {"no": 25, "color": "<green>"}
+            ) in fake_logger.fallback_calls

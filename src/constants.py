@@ -28,12 +28,15 @@ EXTENDED_CHECKS: Final[list[str]] = [
     ".jobs | keys | length > 0",                             # at least one job
     ".jobs[].steps | length > 0",                            # steps on empty array
     ".jobs[].\"runs-on\" | select(. != null)",               # runs-on not null
+]
 
+OPTIONAL_CHECKS: Final[list[str]] = [
     # optionals — check only if field exists
     ".jobs[].\"timeout-minutes\" | select(. != null) | select(. > 0)",
-    ".on.schedule[].cron | select(. != null)",
+    ".on.schedule // null | select(. != null) | .[].cron | select(. != null)",
     ".jobs[].needs | select(. != null) | length > 0",
 ]
+
 
 # EXTENDED_CHECKS: Final[list[str]] = [
 #     # obligatory
@@ -74,6 +77,7 @@ EXTENDED_CHECKS: Final[list[str]] = [
 #     ".on.workflow_call",
 #     ".on.schedule",
 # ]
+
 
 # Need to extend as much as possible
 DEPRECATED_ACTIONS: Final[list[str]] = [
@@ -126,3 +130,12 @@ DEPRECATED_ACTIONS: Final[list[str]] = [
     "appleboy/telegram-action@v0.1.0",
     "appleboy/telegram-action@v0.1.1",
 ]
+
+
+PROJECT_DESCRIPTION = (
+    """
+    flowguard is a command-line tool for validating YAML configuration files and visualizing their structure.
+    It combines yq-based checks, JSON Schema validation, and graph generation to make configuration quality
+    gates CI-friendly and easier to debug.
+    """
+)

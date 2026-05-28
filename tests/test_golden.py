@@ -32,10 +32,10 @@ def _configure_test_logging(quiet: bool = False) -> logging.Logger:
 
 
 def _fake_regular_validation(
-    *, yml_files: Path, yq_exe: Path, yml2dot_exe: Path
+    *, cfg_files: Path, yq_exe: Path, yml2dot_exe: Path, run_optional: bool = False
 ) -> int:
     try:
-        yaml.safe_load(yml_files.read_text(encoding="utf-8"))
+        yaml.safe_load(cfg_files.read_text(encoding="utf-8"))
         logging.getLogger(__name__).info(
             "Successfully built dot schema, check results: result.png"
         )
@@ -43,7 +43,7 @@ def _fake_regular_validation(
         return 0
     except yaml.YAMLError:
         logging.getLogger(__name__).error(
-            "Validation failed for %s", yml_files)
+            f"Validation failed for {cfg_files}")
         return 1
 
 
@@ -89,7 +89,7 @@ def _assert_startup_line_matches_version(actual_output: str) -> None:
     assert lines, "CLI output is empty"
 
     expected_startup = (
-        f"INFO: Starting YMLValidator {__version__} "
+        f"INFO: Starting flowguard {__version__} "
         f"(build {__build__}, commit {__commit__})"
     )
     assert lines[0] == expected_startup

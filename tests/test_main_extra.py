@@ -14,7 +14,7 @@ class DummyParser:
         return self._namespace
 
 
-def test_main_schema_branch_calls_validate_against_schema(
+def test_main_schema_branch_calls_validate_custom_pipeline(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     namespace = Namespace(
@@ -22,6 +22,12 @@ def test_main_schema_branch_calls_validate_against_schema(
         exec_dir=None,
         schema=tmp_path / "schema.json",
         quiet=False,
+        list_checks=False,
+        description=False,
+        version=False,
+        difference=False,
+        no_optional_checks=False,
+        output_format="svg",
     )
     monkeypatch.setattr(app_main, "_build_parser",
                         lambda: DummyParser(namespace))
@@ -30,12 +36,13 @@ def test_main_schema_branch_calls_validate_against_schema(
 
     called: dict[str, object] = {}
 
-    def fake_validate(*, yml_path: Path, schema_file: Path) -> int:
-        called["yml_path"] = yml_path
-        called["schema_file"] = schema_file
+    def fake_validate(*, cfg_files: Path, val_schema: Path, yml2dot_exe: Path) -> int:
+        called["cfg_files"] = cfg_files
+        called["val_schema"] = val_schema
+        called["yml2dot_exe"] = yml2dot_exe
         return 0
 
-    monkeypatch.setattr(app_main, "validate_against_schema", fake_validate)
+    monkeypatch.setattr(app_main, "validate_custom_pipeline", fake_validate)
     monkeypatch.setattr(
         app_main,
         "regular_validation",
@@ -43,5 +50,6 @@ def test_main_schema_branch_calls_validate_against_schema(
     )
 
     assert app_main.main() == 0
-    assert called["yml_path"] == namespace.files
-    assert called["schema_file"] == namespace.schema
+    assert called["cfg_files"] == namespace.files
+    assert called["val_schema"] == namespace.schema
+    assert called["yml2dot_exe"] == Path("/bin/tool")

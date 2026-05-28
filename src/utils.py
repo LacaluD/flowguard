@@ -3,9 +3,7 @@
 from src.logger import log_exception_short
 from pathlib import Path
 import sys
-import logging
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 def _collect_yaml_files(yml_directory: Path) -> list[Path]:
@@ -16,7 +14,7 @@ def _collect_yaml_files(yml_directory: Path) -> list[Path]:
         return [path] if path.suffix.lower() in (".yml", ".yaml") else []
 
     if not path.is_dir():
-        logger.error("'%s' is neither a file nor directory", yml_directory)
+        logger.error(f"'{yml_directory}' is neither a file nor directory")
         sys.exit(1)
 
     return sorted(list(path.rglob("*.yml")) + list(path.rglob("*.yaml")))
@@ -26,10 +24,10 @@ def check_for_empty_file(file_path: Path) -> int:
     """Return 1 if a file is empty or inaccessible, otherwise return 0."""
     try:
         if file_path.stat().st_size == 0:
-            logger.error("%s is empty", file_path)
+            logger.error(f"{file_path} is empty")
             return 1
         if not file_path.read_text(encoding="utf-8").strip():
-            logger.error("%s contains only whitespace", file_path)
+            logger.error(f"{file_path} contains only whitespace")
             return 1
     except OSError as e:
         log_exception_short(

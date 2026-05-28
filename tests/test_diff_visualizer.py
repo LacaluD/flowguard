@@ -54,6 +54,14 @@ def test_flatten_returns_empty_for_empty_mapping_and_list() -> None:
     assert mod._flatten([]) == {}
 
 
+def test_flatten_list_with_nested_mapping_item() -> None:
+    data = [{"a": {"b": 1}}]
+
+    result = mod._flatten(data)
+
+    assert result == {"0.a.b": "1"}
+
+
 def test_get_diff_returns_added_removed_changed_sets() -> None:
     first_flat = {"a": "1", "b": "2", "same": "x"}
     second_flat = {"a": "1", "c": "3", "same": "y"}
@@ -352,3 +360,69 @@ def test_visualize_cfgs_accepts_toml_and_mixed_case_extensions(
         "dot_exec": Path("dot"),
         "fmt": "png",
     }
+
+
+def test_build_dot_covers_added_and_removed_classification() -> None:
+    dot_text = mod._build_dot(
+        data={"k": 1},
+        fst_flat={"k": "0", "old": "x", "parent.child": "y"},
+        added={"k"},
+        removed={"old", "parent.child"},
+        changed=set(),
+    )
+
+    assert '#ccffcc' in dot_text
+    assert '#ffcccc' in dot_text
+    assert 'old' in dot_text
+    assert 'child' in dot_text
+
+
+def test_build_dot_classifies_removed_key_present_in_data() -> None:
+    dot_text = mod._build_dot(
+        data={"legacy": 1},
+        fst_flat={"legacy": "1"},
+        added=set(),
+        removed={"legacy"},
+        changed=set(),
+    )
+
+    assert '#ffcccc' in dot_text
+
+
+def test_build_dot_handles_list_value_branch() -> None:
+    dot_text = mod._build_dot(
+        data={"root": [1, 2]},
+        fst_flat={},
+        added=set(),
+        removed=set(),
+        changed=set(),
+    )
+
+    assert 'label="root"' in dot_text
+    assert 'label="0"' in dot_text
+    assert 'label="1"' in dot_text
+
+
+def test_build_dot_handles_top_level_list_data() -> None:
+    dot_text = mod._build_dot(
+        data=[{"a": 1}],
+        fst_flat={},
+        added=set(),
+        removed=set(),
+        changed=set(),
+    )
+
+    assert 'label="0"' in dot_text
+    assert 'label="a"' in dot_text
+
+
+def test_build_dot_handles_top_level_scalar_data() -> None:
+    dot_text = mod._build_dot(
+        data="scalar",
+        fst_flat={},
+        added=set(),
+        removed=set(),
+        changed=set(),
+    )
+
+    assert 'label="root"' in dot_text

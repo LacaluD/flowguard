@@ -1,7 +1,11 @@
 """Command-line argument parser configuration for the validator CLI."""
 
+import sys
 import argparse
 from pathlib import Path
+
+from src.constants import OPTIONAL_CHECKS, EXTENDED_CHECKS, PROJECT_DESCRIPTION
+from version import __build__, __commit__, __version__
 
 
 class _CompatArgumentParser(argparse.ArgumentParser):
@@ -21,7 +25,9 @@ class _CompatArgumentParser(argparse.ArgumentParser):
 
 def _build_parser() -> argparse.ArgumentParser:
     """Create and return the top-level CLI parser."""
-    parser = _CompatArgumentParser(description="Run YML Validator")
+    parser = _CompatArgumentParser(
+        description="Run flowguard: YAML validation and visualization CLI"
+    )
     parser.add_argument(
         "--exec-dir",
         type=Path,
@@ -31,7 +37,6 @@ def _build_parser() -> argparse.ArgumentParser:
         "--files", "-f",
         dest="files",
         type=Path,
-        required=True,
         nargs="+",
         help="choose dir or file path to configs",
     )
@@ -55,7 +60,47 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-format", "-o",
         choices=("svg", "png", "dot"),
         default="svg",
-        help="output format for diff graph",
+        help="output format for difference graph",
+    )
+    parser.add_argument(
+        "--no-optional-checks",
+        action="store_true",
+        help="run YQ without optional check. Run --list-checks to list all available checks",
+    )
+    parser.add_argument(
+        "--list-checks",
+        action="store_true",
+        help="list all available checks and exit"
+    )
+    parser.add_argument(
+        "--description",
+        action="store_true",
+        help="show program description and exit"
+    )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="show program's version number and exit"
     )
 
     return parser
+
+
+def show_list_checks() -> int:
+    print("Required checks:")
+    for expr in EXTENDED_CHECKS:
+        print(f"  {expr}")
+    print("\nOptional checks (disable with --no-optional-checks):")
+    for expr in OPTIONAL_CHECKS:
+        print(f"  {expr}")
+    return 0
+
+
+def show_description() -> int:
+    print(PROJECT_DESCRIPTION)
+    return 0
+
+
+def show_version() -> int:
+    print(f"flowguard {__version__} (build {__build__}, commit {__commit__})")
+    return 0

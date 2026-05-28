@@ -6,7 +6,8 @@ from src import platform_checks
 
 
 def test_find_executable_prefers_path_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(platform_checks.shutil, "which", lambda _: "/usr/bin/yq")
+    monkeypatch.setattr(platform_checks.shutil, "which",
+                        lambda _: "/usr/bin/yq")
 
     result = platform_checks.find_executable("yq")
 
@@ -39,6 +40,24 @@ def test_find_executable_returns_none_when_not_found(
     result = platform_checks.find_executable("missing_tool")
 
     assert result is None
+
+
+def test_find_executable_windows_default_directory_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(platform_checks.shutil, "which", lambda _: None)
+    monkeypatch.setattr(platform_checks.sys, "platform", "win32")
+
+    target = Path("C:/") / "yq.exe"
+
+    def fake_exists(path_obj: Path) -> bool:
+        return path_obj == target
+
+    monkeypatch.setattr(Path, "exists", fake_exists, raising=False)
+
+    result = platform_checks.find_executable("yq.exe")
+
+    assert result == target
 
 
 def test_find_executable_recursive_finds_nested_file(tmp_path: Path) -> None:

@@ -20,11 +20,15 @@ def test_validate_config_integration_success_with_mocked_yq(
             ".name": "CI\n",
             ".jobs": "build\n",
             ".on": "push\n",
-            ".jobs.*.steps": "[]\n",
-            ".jobs.*.runs-on": "ubuntu-latest\n",
+            '.jobs[]."runs-on"': "ubuntu-latest\n",
+            ".jobs[].steps": "step\n",
+            ".name | length > 0": "true\n",
+            ".jobs | keys | length > 0": "true\n",
+            ".jobs[].steps | length > 0": "true\n",
+            '.jobs[]."runs-on" | select(. != null)': "ubuntu-latest\n",
         }
         return subprocess.CompletedProcess(
-            args=cmd, returncode=0, stdout=outputs[expression], stderr=""
+            args=cmd, returncode=0, stdout=outputs.get(expression, "ok\n"), stderr=""
         )
 
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)

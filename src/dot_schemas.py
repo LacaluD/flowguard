@@ -10,18 +10,16 @@ from src.utils import count_timeout
 from typing import Sequence
 from pathlib import Path
 import subprocess
-import logging
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
-def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | None:
+def build_dot_scheme(cfg_files: Sequence[Path], yml2dot_exec: Path) -> Path | None:
     """Build PNG diagrams for YAML files using `yml2dot` + `dot`.
 
     Note: timeout: is being counted automaticly
 
     Args:
-        yml_files: YAML files that already passed validation.
+        cfg_files: YAML files that already passed validation.
         yml2dot_exec: Path to the `yml2dot` executable.
 
     Returns:
@@ -30,7 +28,7 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
     """
     last_output_file: Path | None = None
 
-    for f in yml_files:
+    for f in cfg_files:
         f = Path(f)
         output_file = f.with_suffix(".png")
         timeout = count_timeout(fpath=f, tool="yml2dot")
@@ -46,12 +44,13 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
             )
 
             if yml2dot_result.returncode != 0:
-                stderr_text = yml2dot_result.stderr.decode(errors="replace").strip()
+                stderr_text = yml2dot_result.stderr.decode(
+                    errors="replace").strip()
                 logger.error(
-                    "yml2dot failed for %s with code %d", f, yml2dot_result.returncode
+                    f"yml2dot failed for {f} with code {yml2dot_result.returncode}"
                 )
                 if stderr_text:
-                    logger.error("yml2dot stderr: %s", stderr_text)
+                    logger.error(f"yml2dot stderr: {stderr_text}")
                 return None
 
             with open(output_file, "wb") as out:
@@ -64,11 +63,11 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
                     timeout=timeout,
                 )
 
-            logger.info("%s -> %s generated", f, output_file)
+            logger.info(f"{f} -> {output_file} generated")
             last_output_file = output_file
         except subprocess.TimeoutExpired:
             logger.error(
-                "diagram generation timed out after %ss on file: %s", timeout, f
+                f"diagram generation timed out after {timeout}s on file: {f}"
             )
             return None
         except subprocess.CalledProcessError as e:
@@ -84,7 +83,7 @@ def build_dot_scheme(yml_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
                     stderr_text = e.stderr.decode(errors="replace").strip()
                 else:
                     stderr_text = str(e.stderr).strip()
-                logger.error("dot stderr: %s", stderr_text)
+                logger.error(f"dot stderr: {stderr_text}")
             return None
 
     return last_output_file

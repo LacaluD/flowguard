@@ -5,9 +5,10 @@ import os
 import sys
 import traceback
 from dataclasses import dataclass
-from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
-from typing import Final
+from typing import Any, Callable, Final
+
+from loguru import logger as _base_loguru_logger
 
 
 def format_exception_short(exc: Exception, limit: int = 1) -> str:
@@ -43,7 +44,7 @@ def format_exception_short(exc: Exception, limit: int = 1) -> str:
 
 
 def log_exception_short(
-    log: logging.Logger,
+    log: Any,
     exc: Exception,
     prefix: str = "",
     level: str = "error",
@@ -96,10 +97,23 @@ def _resolve_log_paths() -> tuple[Path, Path]:
     return log_dir_path, log_dir_path / log_file_name
 
 
-LOG_FORMAT: Final[str] = (
-    "[%(asctime)s] [%(levelname)-8s] %(name)s:%(funcName)s:%(lineno)d - %(message)s"
+LOGURU_FORMAT: Final[str] = (
+    "<green>[{time:YYYY-MM-DD HH:mm:ss}]</green> "
+    "<level>[{level: <8}]</level> "
+    "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - {message}"
 )
-DATE_FORMAT: Final[str] = "%Y-%m-%d %H:%M:%S"
+
+SUCCESS = 25
+logging.addLevelName(SUCCESS, "SUCCESS")
+
+LOGURU_LOGGER = _base_loguru_logger.patch(
+    lambda record: record["extra"].setdefault("logger_name", record["name"])
+)
+
+try:
+    LOGURU_LOGGER.level("SUCCESS")
+except ValueError:
+    LOGURU_LOGGER.level("SUCCESS", no=SUCCESS, color="<green>")
 
 
 def _resolve_level(
@@ -116,14 +130,78 @@ def _resolve_level(
     return fallback, warning_message
 
 
+def _level_no_to_name(level_no: int) -> str:
+    """Map stdlib level number to a loguru level name."""
+    if level_no == SUCCESS:
+        return "SUCCESS"
+
+    level_name = logging.getLevelName(level_no)
+    if isinstance(level_name, str) and level_name.isupper():
+        return level_name
+
+    return "INFO"
+
+
+def _render_stdlib_message(message: Any, args: tuple[Any, ...]) -> str:
+    """Render stdlib-style '%'-formatted messages for backward compatibility."""
+    rendered = str(message)
+    if not args:
+        return rendered
+
+    try:
+        return rendered % args
+    except Exception:
+        fallback_args = " ".join(str(arg) for arg in args)
+        return f"{rendered} {fallback_args}" if fallback_args else rendered
+
+
+class StdlibLikeLoguruAdapter:
+    """Adapter exposing stdlib-like logger methods over a bound loguru logger."""
+
+    def __init__(self, bound_logger: Any):
+        self._logger = bound_logger
+
+    def debug(self, message: Any, *args: Any, **kwargs: Any) -> None:
+        self._logger.debug(_render_stdlib_message(message, args))
+
+    def info(self, message: Any, *args: Any, **kwargs: Any) -> None:
+        self._logger.info(_render_stdlib_message(message, args))
+
+    def warning(self, message: Any, *args: Any, **kwargs: Any) -> None:
+        self._logger.warning(_render_stdlib_message(message, args))
+
+    def error(self, message: Any, *args: Any, **kwargs: Any) -> None:
+        self._logger.error(_render_stdlib_message(message, args))
+
+    def critical(self, message: Any, *args: Any, **kwargs: Any) -> None:
+        self._logger.critical(_render_stdlib_message(message, args))
+
+    def success(self, message: Any, *args: Any, **kwargs: Any) -> None:
+        self._logger.success(_render_stdlib_message(message, args))
+
+    def exception(self, message: Any, *args: Any, **kwargs: Any) -> None:
+        text = _render_stdlib_message(message, args)
+        self._logger.opt(exception=True).error(text)
+
+    def log(self, level: str, message: Any, *args: Any, **kwargs: Any) -> None:
+        text = _render_stdlib_message(message, args)
+        self._logger.log(str(level).upper(), text)
+
+    def bind(self, **kwargs: Any) -> "StdlibLikeLoguruAdapter":
+        return StdlibLikeLoguruAdapter(self._logger.bind(**kwargs))
+
+    def __getattr__(self, name: str) -> Callable[..., Any]:
+        return getattr(self._logger, name)
+
+
 class MainLogger:
     """Main project logger"""
-
     _configured: bool = False
 
     def __init__(self, logger_name: str = "ymlvalidator"):
         self.logger_name = logger_name
-        self.logger = logging.getLogger(logger_name)
+        self._bound_logger = LOGURU_LOGGER.bind(logger_name=logger_name)
+        self.logger = StdlibLikeLoguruAdapter(self._bound_logger)
         self.log = self.logger
         self.settings = get_settings()
         self.log_dir_path, self.log_file_path = _resolve_log_paths()
@@ -133,66 +211,58 @@ class MainLogger:
         self.log_dir_path.mkdir(parents=True, exist_ok=True)
         self.log_file_path.touch(exist_ok=True)
 
-    def configure_stdlib_logging(self) -> None:
-        """Configure external stdlib loggers to respect project settings."""
-        external_level, _ = _resolve_level(self.settings.external_log_level)
-
-        for logger_name in ("aiohttp", "asyncio"):
-            external_logger = logging.getLogger(logger_name)
-            external_logger.setLevel(external_level)
-            external_logger.propagate = True
-
-        for logger_name in ("telethon", "telethon.network", "telethon.client"):
-            external_logger = logging.getLogger(logger_name)
-            external_logger.setLevel(external_level)
-            external_logger.propagate = True
-
     def resolve_file_log_level(self) -> tuple[str, str | None]:
         """Validate LOG_FILE_LEVEL and return safe value with optional warning text."""
-        _, warning = _resolve_level(self.settings.log_file_level, fallback=logging.INFO)
+        _, warning = _resolve_level(
+            self.settings.log_file_level, fallback=logging.INFO)
         return self.settings.log_file_level, warning
 
-    def init_logger(self, quiet: bool = False) -> logging.Logger:
+    def configure_stdlib_logging(self) -> None:
+        """Set external libraries logging level from EXTERNAL_LOG_LEVEL."""
+        external_level, _ = _resolve_level(
+            self.settings.external_log_level, fallback=logging.INFO
+        )
+        for external_logger_name in ("aiohttp", "telethon"):
+            logging.getLogger(external_logger_name).setLevel(external_level)
+
+    def init_logger(self, quiet: bool = False) -> StdlibLikeLoguruAdapter:
         """Initialize logger with file and console handlers"""
         if MainLogger._configured:
             return self.logger
 
         self.ensure_log_path_exists()
-        console_level, console_warning = _resolve_level(
+        console_warning = _resolve_level(
             self.settings.log_level, fallback=logging.INFO
-        )
+        )[1]
         file_level, file_warning = _resolve_level(
             self.settings.log_file_level, fallback=logging.INFO
         )
 
-        formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+        stderr_level_name = "ERROR" if quiet else "WARNING"
+        stdout_level_name = "SUCCESS" if quiet else "DEBUG"
+        file_level_name = _level_no_to_name(file_level)
 
-        stderr_handler = logging.StreamHandler(sys.stderr)
-        stderr_handler.setLevel(logging.ERROR if quiet else logging.WARNING)
-        stderr_handler.setFormatter(formatter)
-
-        stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setLevel(logging.CRITICAL + 1 if quiet else logging.DEBUG)
-        stdout_handler.addFilter(lambda record: record.levelno < logging.WARNING)
-        stdout_handler.setFormatter(formatter)
-
-        file_handler = TimedRotatingFileHandler(
-            filename=str(self.log_file_path),
-            when="W0",
-            interval=2,
-            backupCount=8,
+        LOGURU_LOGGER.remove()
+        LOGURU_LOGGER.add(
+            sys.stderr,
+            level=stderr_level_name,
+            format=LOGURU_FORMAT,
+        )
+        LOGURU_LOGGER.add(
+            sys.stdout,
+            level=stdout_level_name,
+            format=LOGURU_FORMAT,
+            filter=lambda record: record["level"].no < logging.WARNING,
+        )
+        LOGURU_LOGGER.add(
+            str(self.log_file_path),
+            level=file_level_name,
+            format=LOGURU_FORMAT,
+            colorize=False,
+            rotation="2 weeks",
+            retention=8,
             encoding="utf-8",
         )
-        file_handler.setLevel(file_level)
-        file_handler.setFormatter(formatter)
-
-        root_logger = logging.getLogger()
-        root_logger.setLevel(logging.DEBUG)
-        root_logger.handlers = []
-        root_logger.addHandler(stderr_handler)
-        root_logger.addHandler(stdout_handler)
-        root_logger.addHandler(file_handler)
-
         self.configure_stdlib_logging()
 
         if console_warning:
@@ -201,7 +271,7 @@ class MainLogger:
             self.logger.warning(file_warning)
 
         self.logger.debug(
-            "Logging handlers configured. log_file_path=%s", self.log_file_path
+            f"Logging handlers configured. log_file_path={self.log_file_path}",
         )
         self.logger.info("Logger initialized successfully")
         MainLogger._configured = True
