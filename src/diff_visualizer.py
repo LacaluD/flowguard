@@ -22,7 +22,6 @@ import hashlib
 
 from loguru import logger
 
-
 SUPPORTED_EXT = {".yml", ".yaml", ".json", ".toml"}
 DIFF_COLORS: dict[str, str] = {
     "added": "#ccffcc",
@@ -218,7 +217,7 @@ def _build_dot(
         lines.append(f'  {nid} [label="{label_text}" fillcolor="{color}"]')
 
         if parent_key is not None:
-            lines.append(f'  {node_id(parent_key)} -> {nid}')
+            lines.append(f"  {node_id(parent_key)} -> {nid}")
 
         if isinstance(value, Mapping):
             for child_key, child_value in value.items():
@@ -236,9 +235,8 @@ def _build_dot(
         val_nid = node_id(val_key)
         val_label = _escape_label(value)
         val_color = DIFF_COLORS[classify(full_key)]
-        lines.append(
-            f'  {val_nid} [label="{val_label}" fillcolor="{val_color}"]')
-        lines.append(f'  {nid} -> {val_nid}')
+        lines.append(f'  {val_nid} [label="{val_label}" fillcolor="{val_color}"]')
+        lines.append(f"  {nid} -> {val_nid}")
 
     if isinstance(data, Mapping):
         for key, value in data.items():
@@ -257,16 +255,18 @@ def _build_dot(
         val_label = _escape_label(fst_flat[key])
         key_label = _escape_label(key.split(".")[-1])
         lines.append(
-            f'  {nid} [label="{key_label}" fillcolor="{DIFF_COLORS["removed"]}"]')
+            f'  {nid} [label="{key_label}" fillcolor="{DIFF_COLORS["removed"]}"]'
+        )
 
         parent = ".".join(key.split(".")[:-1])
         if parent:
-            lines.append(f'  {node_id(parent)} -> {nid}')
+            lines.append(f"  {node_id(parent)} -> {nid}")
 
         val_nid = node_id(f"{key}.__val__")
         lines.append(
-            f'  {val_nid} [label="{val_label}" fillcolor="{DIFF_COLORS["removed"]}"]')
-        lines.append(f'  {nid} -> {val_nid}')
+            f'  {val_nid} [label="{val_label}" fillcolor="{DIFF_COLORS["removed"]}"]'
+        )
+        lines.append(f"  {nid} -> {val_nid}")
 
     lines.extend(_build_legend())
     lines.append("}")
@@ -276,10 +276,10 @@ def _build_dot(
 def _build_legend() -> list[str]:
     """Build legend lines for the DOT graph."""
     return [
-        '  subgraph cluster_legend {',
+        "  subgraph cluster_legend {",
         '    label="Legend"',
         '    fontname="Fira Mono"',
-        '    fontsize=13',
+        "    fontsize=13",
         '    style="rounded,filled"',
         '    fillcolor="#f5f5f5"',
         '    color="#cccccc"',
@@ -289,7 +289,7 @@ def _build_legend() -> list[str]:
         '    legend_removed  [label="x  removed"   fillcolor="#ffcccc" style="rounded,filled" fontname="Fira Mono" fontsize=11]',
         '    legend_default  [label="   unchanged" fillcolor="#fafafa" style="rounded,filled" fontname="Fira Mono" fontsize=11]',
         '    legend_added -> legend_changed -> legend_removed -> legend_default [style="invis"]',
-        '  }',
+        "  }",
     ]
 
 
@@ -306,7 +306,9 @@ def get_cfg_difference(
     Returns:
         Exit code: 0 on success, 1 on failure.
     """
-    logger.info(f"Got file formats: {fst_file.suffix}, {sec_file.suffix}. Output format: {output_format}")
+    logger.info(
+        f"Got file formats: {fst_file.suffix}, {sec_file.suffix}. Output format: {output_format}"
+    )
     fst_data = _parse_file(fst_file)
     sec_data = _parse_file(sec_file)
 
@@ -335,8 +337,7 @@ def get_cfg_difference(
         return 0
 
     result = subprocess.run(
-        [dot_exec, f"-T{output_format}",
-            str(dot_file), "-o", str(output_file)],
+        [dot_exec, f"-T{output_format}", str(dot_file), "-o", str(output_file)],
         capture_output=True,
         text=True,
         check=False,
@@ -379,7 +380,10 @@ def visualize_cfgs(
 
     if not all(file_path.suffix.lower() in SUPPORTED_EXT for file_path in files):
         logger.error(
-            "Wrong file format! Both files must be .yml, .yaml, .json, or .toml")
+            "Wrong file format! Both files must be .yml, .yaml, .json, or .toml"
+        )
         return 1
 
-    return get_cfg_difference(files[0], files[1], output_format=output_format, dot_exec=dot_exec)
+    return get_cfg_difference(
+        files[0], files[1], output_format=output_format, dot_exec=dot_exec
+    )

@@ -38,8 +38,7 @@ def test_validate_config_read_text_error_returns_one(
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda _: [yml_file]
     )
-    monkeypatch.setattr(main_validation_logic,
-                        "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(main_validation_logic, "check_for_empty_file", lambda _: 0)
 
     def raise_read_error(*args, **kwargs):
         raise OSError("cannot read")
@@ -55,13 +54,11 @@ def test_regular_validation_returns_one_when_build_fails(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "validate_config", lambda **_: 0)
+    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 0)
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda _: [yml_file]
     )
-    monkeypatch.setattr(main_validation_logic,
-                        "build_dot_scheme", lambda **_: None)
+    monkeypatch.setattr(main_validation_logic, "build_dot_scheme", lambda **_: None)
 
     assert (
         main_validation_logic.regular_validation(
@@ -79,8 +76,7 @@ def test_regular_validation_returns_zero_on_success(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "validate_config", lambda **_: 0)
+    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 0)
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda _: [yml_file]
     )

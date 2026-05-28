@@ -6,7 +6,6 @@ Executable discovery is performed automatically and can be extended with a
 user-provided search directory.
 """
 
-
 import sys
 
 from version import __version__, __build__, __commit__
@@ -14,7 +13,12 @@ from src.platform_checks import find_executable, find_executable_recursive
 from src.validation_by_schema import validate_custom_pipeline
 from src.main_validation_logic import regular_validation
 from src.diff_visualizer import visualize_cfgs
-from src.cli_parser import _build_parser, show_list_checks, show_description, show_version
+from src.cli_parser import (
+    _build_parser,
+    show_list_checks,
+    show_description,
+    show_version,
+)
 from src.logger import MainLogger
 
 
@@ -87,7 +91,10 @@ def main() -> int:
     elif not args.schema and not difference:
         logger.info("Launching validation process without schema")
         return regular_validation(
-            cfg_files=input_files, yq_exe=yq_exe, yml2dot_exe=yml2_dot_exe, run_optional=not args.no_optional_checks
+            cfg_files=input_files,
+            yq_exe=yq_exe,
+            yml2dot_exe=yml2_dot_exe,
+            run_optional=not args.no_optional_checks,
         )
 
     if difference:
@@ -95,8 +102,7 @@ def main() -> int:
             logger.error("dot executable is missing")
             return 1
         logger.info("Building config difference visualization...")
-        files_for_diff = input_files if isinstance(
-            input_files, list) else [input_files]
+        files_for_diff = input_files if isinstance(input_files, list) else [input_files]
         return visualize_cfgs(
             files=files_for_diff,
             difference=difference,

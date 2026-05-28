@@ -39,7 +39,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="select dir to find binaries from",
     )
     parser.add_argument(
-        "--files", "-f",
+        "--files",
+        "-f",
         dest="files",
         type=Path,
         nargs="+",
@@ -57,12 +58,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="path to JSON Schema file (.json or .yml)",
     )
     parser.add_argument(
-        "--difference", "-diff",
+        "--difference",
+        "-diff",
         action="store_true",
         help="build svg image of difference between 2 configs",
     )
     parser.add_argument(
-        "--output-format", "-o",
+        "--output-format",
+        "-o",
         choices=("svg", "png", "dot"),
         default="svg",
         help="output format for difference graph",
@@ -73,19 +76,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="run YQ without optional check. Run --list-checks to list all available checks",
     )
     parser.add_argument(
-        "--list-checks",
-        action="store_true",
-        help="list all available checks and exit"
+        "--list-checks", action="store_true", help="list all available checks and exit"
     )
     parser.add_argument(
-        "--description",
-        action="store_true",
-        help="show program description and exit"
+        "--description", action="store_true", help="show program description and exit"
     )
     parser.add_argument(
-        "--version",
-        action="store_true",
-        help="show program's version number and exit"
+        "--version", action="store_true", help="show program's version number and exit"
     )
 
     return parser

@@ -14,25 +14,22 @@ EXTENDED_CHECKS: Final[list[str]] = [
     ".name",
     ".on",
     ".jobs",
-
     # obligatory inside job
-    ".jobs[].\"runs-on\"",
+    '.jobs[]."runs-on"',
     ".jobs[].steps",
-
     # each step must have either "run" or "uses" — but yq can't express "or" logic,
     # so adding both to the list would produce false positives
     # when only one of them is present
-
     # checking values
-    ".name | length > 0",                                    # name not empty
-    ".jobs | keys | length > 0",                             # at least one job
-    ".jobs[].steps | length > 0",                            # steps on empty array
-    ".jobs[].\"runs-on\" | select(. != null)",               # runs-on not null
+    ".name | length > 0",  # name not empty
+    ".jobs | keys | length > 0",  # at least one job
+    ".jobs[].steps | length > 0",  # steps on empty array
+    '.jobs[]."runs-on" | select(. != null)',  # runs-on not null
 ]
 
 OPTIONAL_CHECKS: Final[list[str]] = [
     # optionals — check only if field exists
-    ".jobs[].\"timeout-minutes\" | select(. != null) | select(. > 0)",
+    '.jobs[]."timeout-minutes" | select(. != null) | select(. > 0)',
     ".on.schedule // null | select(. != null) | .[].cron | select(. != null)",
     ".jobs[].needs | select(. != null) | length > 0",
 ]
@@ -132,10 +129,8 @@ DEPRECATED_ACTIONS: Final[list[str]] = [
 ]
 
 
-PROJECT_DESCRIPTION = (
-    """
+PROJECT_DESCRIPTION = """
     flowguard is a command-line tool for validating YAML configuration files and visualizing their structure.
     It combines yq-based checks, JSON Schema validation, and graph generation to make configuration quality
     gates CI-friendly and easier to debug.
     """
-)

@@ -196,6 +196,7 @@ class StdlibLikeLoguruAdapter:
 
 class MainLogger:
     """Main project logger"""
+
     _configured: bool = False
 
     def __init__(self, logger_name: str = "ymlvalidator"):
@@ -213,8 +214,7 @@ class MainLogger:
 
     def resolve_file_log_level(self) -> tuple[str, str | None]:
         """Validate LOG_FILE_LEVEL and return safe value with optional warning text."""
-        _, warning = _resolve_level(
-            self.settings.log_file_level, fallback=logging.INFO)
+        _, warning = _resolve_level(self.settings.log_file_level, fallback=logging.INFO)
         return self.settings.log_file_level, warning
 
     def configure_stdlib_logging(self) -> None:

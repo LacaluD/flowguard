@@ -44,8 +44,7 @@ def build_dot_scheme(cfg_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
             )
 
             if yml2dot_result.returncode != 0:
-                stderr_text = yml2dot_result.stderr.decode(
-                    errors="replace").strip()
+                stderr_text = yml2dot_result.stderr.decode(errors="replace").strip()
                 logger.error(
                     f"yml2dot failed for {f} with code {yml2dot_result.returncode}"
                 )
@@ -66,9 +65,7 @@ def build_dot_scheme(cfg_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
             logger.info(f"{f} -> {output_file} generated")
             last_output_file = output_file
         except subprocess.TimeoutExpired:
-            logger.error(
-                f"diagram generation timed out after {timeout}s on file: {f}"
-            )
+            logger.error(f"diagram generation timed out after {timeout}s on file: {f}")
             return None
         except subprocess.CalledProcessError as e:
             log_exception_short(

@@ -7,7 +7,12 @@ Add this file to .gitignore if using locally.
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 
-from src.constants import INDENT_SIZE, EXTENDED_CHECKS, DEPRECATED_ACTIONS, OPTIONAL_CHECKS
+from src.constants import (
+    INDENT_SIZE,
+    EXTENDED_CHECKS,
+    DEPRECATED_ACTIONS,
+    OPTIONAL_CHECKS,
+)
 from src.utils import _collect_yaml_files, check_for_empty_file, count_timeout
 from src.dot_schemas import build_dot_scheme
 from src.logger import log_exception_short
@@ -25,14 +30,19 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
 
     for deprecated in DEPRECATED_ACTIONS:
         if deprecated in content:
-            logger.warning(
-                f"{file_path} uses deprecated action '{deprecated}'")
+            logger.warning(f"{file_path} uses deprecated action '{deprecated}'")
             issues += 1
 
     return issues
 
 
-def run_yq(fpath: Path, expression: str, description: str, yq_exec: Path, optional: bool = False) -> int:
+def run_yq(
+    fpath: Path,
+    expression: str,
+    description: str,
+    yq_exec: Path,
+    optional: bool = False,
+) -> int:
     """Run a yq expression against a YAML file and return 0 on success, 1 on error."""
     try:
         timeout = count_timeout(fpath=fpath, tool="yml2dot")
@@ -51,8 +61,7 @@ def run_yq(fpath: Path, expression: str, description: str, yq_exec: Path, option
         if expression != ".":
             if output in ("", "null", "false"):
                 if optional:
-                    logger.warning(
-                        f"{fpath}: {description} skipped (not present)")
+                    logger.warning(f"{fpath}: {description} skipped (not present)")
                     return 0
                 logger.error(f"{fpath}: {description} missing")
                 return 1
@@ -111,7 +120,9 @@ def check_indentation(file_path: Path) -> int:
     return errors
 
 
-def validate_config(yml_path: Path, yq_exec: Path, run_optional: bool = False) -> TypeError | int:
+def validate_config(
+    yml_path: Path, yq_exec: Path, run_optional: bool = False
+) -> TypeError | int:
     """Validate YAML files and return validated files, or None on validation failure."""
     if not isinstance(yml_path, Path):
         raise TypeError("yml_directory is not proper Path object")
@@ -146,8 +157,9 @@ def validate_config(yml_path: Path, yq_exec: Path, run_optional: bool = False) -
             yq_exec=yq_exec,
         )
 
-        total_errors += run_yq_in_threadpool(fpath=file_path,
-                                             yq_exec=yq_exec, run_optional=run_optional)
+        total_errors += run_yq_in_threadpool(
+            fpath=file_path, yq_exec=yq_exec, run_optional=run_optional
+        )
 
         total_errors += check_for_deprecated_keys(file_path, content)
 
@@ -169,14 +181,26 @@ def run_yq_in_threadpool(fpath: Path, yq_exec: Path, run_optional: bool = True) 
     max_workers = max(1, (os.cpu_count() or 4) // 4)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(run_yq, fpath=fpath, expression=expr,
-                            description=f"check '{expr}'", yq_exec=yq_exec, optional=False): expr
+            executor.submit(
+                run_yq,
+                fpath=fpath,
+                expression=expr,
+                description=f"check '{expr}'",
+                yq_exec=yq_exec,
+                optional=False,
+            ): expr
             for expr in EXTENDED_CHECKS
         }
         if run_optional:
             futures |= {
-                executor.submit(run_yq, fpath=fpath, expression=expr,
-                                description=f"check '{expr}'", yq_exec=yq_exec, optional=True): expr
+                executor.submit(
+                    run_yq,
+                    fpath=fpath,
+                    expression=expr,
+                    description=f"check '{expr}'",
+                    yq_exec=yq_exec,
+                    optional=True,
+                ): expr
                 for expr in OPTIONAL_CHECKS
             }
 
@@ -186,7 +210,9 @@ def run_yq_in_threadpool(fpath: Path, yq_exec: Path, run_optional: bool = True) 
     return total_errors
 
 
-def regular_validation(cfg_files: Path, yq_exe: Path, yml2dot_exe: Path, run_optional: bool = False) -> int:
+def regular_validation(
+    cfg_files: Path, yq_exe: Path, yml2dot_exe: Path, run_optional: bool = False
+) -> int:
     """Run the non-schema validation pipeline and diagram generation.
 
     The pipeline validates YAML content with `yq`-based checks, then builds
@@ -201,10 +227,8 @@ def regular_validation(cfg_files: Path, yq_exe: Path, yml2dot_exe: Path, run_opt
         0 when validation and diagram generation succeed.
         1 when validation fails or diagram generation fails.
     """
-    logger.info(
-        f"Running validate config task with optional checks: {run_optional}")
-    res = validate_config(yml_path=cfg_files,
-                          yq_exec=yq_exe, run_optional=run_optional)
+    logger.info(f"Running validate config task with optional checks: {run_optional}")
+    res = validate_config(yml_path=cfg_files, yq_exec=yq_exe, run_optional=run_optional)
     if res != 0:
         logger.error("Validation failed")
         return 1
@@ -214,8 +238,7 @@ def regular_validation(cfg_files: Path, yq_exe: Path, yml2dot_exe: Path, run_opt
         yml2dot_exec=yml2dot_exe,
     )
     if output_file is not None:
-        logger.info(
-            f"Successfully built dot schema, check results: {output_file}")
+        logger.info(f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         return 0
 

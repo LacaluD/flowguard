@@ -29,10 +29,8 @@ def test_main_schema_branch_calls_validate_custom_pipeline(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
 
     called: dict[str, object] = {}
 

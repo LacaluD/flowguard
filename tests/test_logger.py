@@ -73,8 +73,7 @@ def test_resolve_level_valid_name_returns_expected_level() -> None:
 
 
 def test_resolve_level_invalid_name_returns_fallback_and_warning() -> None:
-    level, warning = logger_module._resolve_level(
-        "bad-level", fallback=logging.INFO)
+    level, warning = logger_module._resolve_level("bad-level", fallback=logging.INFO)
 
     assert level == logging.INFO
     assert warning is not None
@@ -195,8 +194,7 @@ def test_init_logger_quiet_mode_reduces_console_noise(
         return len(add_calls)
 
     monkeypatch.setattr(logger_module.LOGURU_LOGGER, "add", fake_add)
-    monkeypatch.setattr(logger_module.LOGURU_LOGGER,
-                        "remove", lambda *a, **k: None)
+    monkeypatch.setattr(logger_module.LOGURU_LOGGER, "remove", lambda *a, **k: None)
 
     main_logger = logger_module.MainLogger("test.init_logger.quiet")
     main_logger.init_logger(quiet=True)
@@ -240,8 +238,7 @@ def test_format_exception_short_when_extracted_traceback_is_empty(
     try:
         _raise_value_error()
     except ValueError as exc:
-        monkeypatch.setattr(logger_module.traceback,
-                            "extract_tb", lambda _tb: [])
+        monkeypatch.setattr(logger_module.traceback, "extract_tb", lambda _tb: [])
         result = logger_module.format_exception_short(exc, limit=1)
 
     assert result == "ValueError: boom"
@@ -253,8 +250,9 @@ def test_format_exception_short_falls_back_to_absolute_filename(
     try:
         _raise_value_error()
     except ValueError as exc:
-        monkeypatch.setattr(logger_module.Path, "cwd",
-                            lambda: Path("/__not_matching_cwd__"))
+        monkeypatch.setattr(
+            logger_module.Path, "cwd", lambda: Path("/__not_matching_cwd__")
+        )
         result = logger_module.format_exception_short(exc, limit=1)
 
     assert "ValueError: boom" in result
@@ -353,7 +351,9 @@ def test_init_logger_emits_invalid_level_warnings(
     assert "Invalid log level 'bad-file'" in "\n".join(messages)
 
 
-def test_logger_module_import_executes_success_level_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_logger_module_import_executes_success_level_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     module_path = Path(__file__).resolve().parents[1] / "src" / "logger.py"
 
     class FakeLogger:
@@ -374,11 +374,9 @@ def test_logger_module_import_executes_success_level_fallback(monkeypatch: pytes
 
     monkeypatch.setitem(sys.modules, "loguru", fake_loguru)
 
-    spec = importlib.util.spec_from_file_location(
-        "logger_cov_import_test", module_path)
+    spec = importlib.util.spec_from_file_location("logger_cov_import_test", module_path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    assert ("SUCCESS", {"no": 25, "color": "<green>"}
-            ) in fake_logger.fallback_calls
+    assert ("SUCCESS", {"no": 25, "color": "<green>"}) in fake_logger.fallback_calls

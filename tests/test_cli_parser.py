@@ -28,11 +28,15 @@ def test_build_parser_success_flags_and_paths() -> None:
 
     args = parser.parse_args(
         [
-            "--exec-dir", "bin",
-            "--schema", "schema.json",
-            "--files", "cfg.yml",
+            "--exec-dir",
+            "bin",
+            "--schema",
+            "schema.json",
+            "--files",
+            "cfg.yml",
             "--difference",
-            "--output-format", "png",
+            "--output-format",
+            "png",
             "--quiet",
             "--no-optional-checks",
             "--list-checks",
@@ -73,8 +77,7 @@ def test_build_parser_edge_defaults_without_args() -> None:
 def test_build_parser_edge_short_aliases() -> None:
     parser = cli._build_parser()
 
-    args = parser.parse_args(
-        ["-f", "a.yml", "b.yml", "-diff", "-o", "dot", "-q"])
+    args = parser.parse_args(["-f", "a.yml", "b.yml", "-diff", "-o", "dot", "-q"])
 
     assert args.files == [Path("a.yml"), Path("b.yml")]
     assert args.difference is True

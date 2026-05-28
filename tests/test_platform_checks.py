@@ -6,8 +6,7 @@ from src import platform_checks
 
 
 def test_find_executable_prefers_path_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(platform_checks.shutil, "which",
-                        lambda _: "/usr/bin/yq")
+    monkeypatch.setattr(platform_checks.shutil, "which", lambda _: "/usr/bin/yq")
 
     result = platform_checks.find_executable("yq")
 

@@ -57,8 +57,7 @@ def test_main_returns_error_when_executables_missing(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "find_executable", lambda _: None)
 
     result = app_main.main()
@@ -85,10 +84,8 @@ def test_main_success_flow_returns_zero(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
     monkeypatch.setattr(app_main, "regular_validation", lambda **_: 0)
 
     result = app_main.main()
@@ -114,8 +111,7 @@ def test_main_uses_recursive_search_when_exec_dir_is_set(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "find_executable", lambda _: None)
 
     calls: list[tuple[str, Path]] = []
@@ -152,10 +148,8 @@ def test_main_returns_error_when_validation_fails(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
     monkeypatch.setattr(app_main, "regular_validation", lambda **_: 1)
 
     result = app_main.main()
@@ -182,10 +176,8 @@ def test_main_success_output_goes_to_stdout(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
     monkeypatch.setattr(app_main, "regular_validation", lambda **_: 0)
 
     # Force handler reconfiguration so StreamHandlers bind to capsys streams.
@@ -214,8 +206,7 @@ def test_main_error_output_goes_to_stderr_in_quiet_mode(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "find_executable", lambda _: None)
 
     # Force handler reconfiguration so StreamHandlers bind to capsys streams.
@@ -245,8 +236,7 @@ def test_main_returns_show_list_checks_when_requested(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "show_list_checks", lambda: 7)
 
     assert app_main.main() == 7
@@ -268,8 +258,7 @@ def test_main_returns_show_description_when_requested(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "show_description", lambda: 8)
 
     assert app_main.main() == 8
@@ -291,8 +280,7 @@ def test_main_returns_show_version_when_requested(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
     monkeypatch.setattr(app_main, "show_version", lambda: 9)
 
     assert app_main.main() == 9
@@ -319,8 +307,7 @@ def test_main_difference_mode_uses_recursive_dot_and_calls_visualizer(
         no_optional_checks=False,
         output_format="png",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
 
     def fake_find_executable(name: str):
         if name == "dot":
@@ -371,8 +358,7 @@ def test_main_difference_mode_logs_missing_dot_when_not_found(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
 
     def fake_find_executable(name: str):
         if name == "dot":
@@ -390,8 +376,13 @@ def test_main_difference_mode_logs_missing_dot_when_not_found(
         def error(self, msg: str) -> None:
             messages.append(f"E:{msg}")
 
-    monkeypatch.setattr(app_main, "MainLogger", lambda: type(
-        "L", (), {"init_logger": lambda self, quiet=False: FakeLogger()})())
+    monkeypatch.setattr(
+        app_main,
+        "MainLogger",
+        lambda: type(
+            "L", (), {"init_logger": lambda self, quiet=False: FakeLogger()}
+        )(),
+    )
 
     assert app_main.main() == 1
     assert any(line.startswith("E:dot:") for line in messages)

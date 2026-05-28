@@ -24,8 +24,9 @@ def test_build_dot_scheme_returns_none_when_yml2dot_fails_with_stderr(
 
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
-    monkeypatch.setattr(dot_schemas.logger, "error",
-                        lambda message: errors.append(str(message)))
+    monkeypatch.setattr(
+        dot_schemas.logger, "error", lambda message: errors.append(str(message))
+    )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
 
@@ -104,8 +105,9 @@ def test_build_dot_scheme_logs_dot_stderr_when_dot_fails(
 
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
-    monkeypatch.setattr(dot_schemas.logger, "error",
-                        lambda message: errors.append(str(message)))
+    monkeypatch.setattr(
+        dot_schemas.logger, "error", lambda message: errors.append(str(message))
+    )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
 

@@ -10,9 +10,7 @@ from pathlib import Path
 
 import pytest
 
-
-MODULE_PATH = Path(__file__).resolve(
-).parents[1] / "src" / "diff_visualizer.py"
+MODULE_PATH = Path(__file__).resolve().parents[1] / "src" / "diff_visualizer.py"
 _SPEC = importlib.util.spec_from_file_location("diff_visualizer", MODULE_PATH)
 assert _SPEC and _SPEC.loader
 
@@ -136,7 +134,7 @@ def test_parse_toml_failure_propagates_loader_error(
     tmp_path: Path,
 ) -> None:
     toml_file = tmp_path / "broken.toml"
-    toml_file.write_text("name = \"app\"\n", encoding="utf-8")
+    toml_file.write_text('name = "app"\n', encoding="utf-8")
 
     def fake_load(_file_obj: io.BufferedReader) -> dict[str, object]:
         raise ValueError("invalid toml")
@@ -165,7 +163,9 @@ def test_parse_file_json_success(tmp_path: Path) -> None:
     assert parsed == {"name": "app"}
 
 
-def test_parse_file_toml_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_parse_file_toml_success(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     file_path = tmp_path / "cfg.toml"
     file_path.write_text('name = "app"\n', encoding="utf-8")
     monkeypatch.setattr(mod, "_parse_toml", lambda _path: {"name": "app"})
@@ -180,7 +180,7 @@ def test_parse_file_uppercase_toml_extension_edge_case(
     tmp_path: Path,
 ) -> None:
     file_path = tmp_path / "cfg.TOML"
-    file_path.write_text('x = 1\n', encoding="utf-8")
+    file_path.write_text("x = 1\n", encoding="utf-8")
     monkeypatch.setattr(mod, "_parse_toml", lambda _path: {"x": 1})
 
     parsed = mod._parse_file(file_path)
@@ -206,13 +206,13 @@ def test_get_cfg_difference_dot_writes_dot_file_without_graphviz(
     new_file.write_text("a: 2\n", encoding="utf-8")
 
     def fail_if_called(*args: object, **kwargs: object) -> None:
-        raise AssertionError(
-            "subprocess.run should not be called for dot output")
+        raise AssertionError("subprocess.run should not be called for dot output")
 
     monkeypatch.setattr(mod.subprocess, "run", fail_if_called)
 
     rc = mod.get_cfg_difference(
-        old_file, new_file, dot_exec=Path("dot"), output_format="dot")
+        old_file, new_file, dot_exec=Path("dot"), output_format="dot"
+    )
 
     assert rc == 0
     assert new_file.with_suffix(".diff.dot").exists()
@@ -227,7 +227,9 @@ def test_get_cfg_difference_svg_success_calls_graphviz_and_cleans_dot(
     old_file.write_text("root:\n  a: 1\n", encoding="utf-8")
     new_file.write_text("root:\n  a: 2\n", encoding="utf-8")
 
-    def fake_run(args: list[str], capture_output: bool, text: bool, check: bool) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        args: list[str], capture_output: bool, text: bool, check: bool
+    ) -> subprocess.CompletedProcess[str]:
         assert args[0] == Path("dot")
         assert args[1] == "-Tsvg"
         out_index = args.index("-o") + 1
@@ -235,12 +237,15 @@ def test_get_cfg_difference_svg_success_calls_graphviz_and_cleans_dot(
         assert capture_output is True
         assert text is True
         assert check is False
-        return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+        return subprocess.CompletedProcess(
+            args=args, returncode=0, stdout="", stderr=""
+        )
 
     monkeypatch.setattr(mod.subprocess, "run", fake_run)
 
     rc = mod.get_cfg_difference(
-        old_file, new_file, dot_exec=Path("dot"), output_format="svg")
+        old_file, new_file, dot_exec=Path("dot"), output_format="svg"
+    )
 
     assert rc == 0
     assert new_file.with_suffix(".diff.svg").exists()
@@ -256,14 +261,19 @@ def test_get_cfg_difference_png_failure_returns_one_and_cleans_dot(
     old_file.write_text("a: 1\n", encoding="utf-8")
     new_file.write_text("a: 2\n", encoding="utf-8")
 
-    def fake_run(args: list[str], capture_output: bool, text: bool, check: bool) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        args: list[str], capture_output: bool, text: bool, check: bool
+    ) -> subprocess.CompletedProcess[str]:
         assert args[1] == "-Tpng"
-        return subprocess.CompletedProcess(args=args, returncode=1, stdout="", stderr="boom")
+        return subprocess.CompletedProcess(
+            args=args, returncode=1, stdout="", stderr="boom"
+        )
 
     monkeypatch.setattr(mod.subprocess, "run", fake_run)
 
     rc = mod.get_cfg_difference(
-        old_file, new_file, dot_exec=Path("dot"), output_format="png")
+        old_file, new_file, dot_exec=Path("dot"), output_format="png"
+    )
 
     assert rc == 1
     assert not new_file.with_suffix(".diff.dot").exists()
@@ -275,16 +285,21 @@ def test_get_cfg_difference_with_toml_inputs_success(
 ) -> None:
     old_file = tmp_path / "old.toml"
     new_file = tmp_path / "new.toml"
-    old_file.write_text('a = 1\n', encoding="utf-8")
-    new_file.write_text('a = 2\n', encoding="utf-8")
+    old_file.write_text("a = 1\n", encoding="utf-8")
+    new_file.write_text("a = 2\n", encoding="utf-8")
 
-    monkeypatch.setattr(mod, "_parse_file", lambda path: {
-                        "a": 1} if path == old_file else {"a": 2})
+    monkeypatch.setattr(
+        mod, "_parse_file", lambda path: {"a": 1} if path == old_file else {"a": 2}
+    )
 
-    def fake_run(args: list[str], capture_output: bool, text: bool, check: bool) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        args: list[str], capture_output: bool, text: bool, check: bool
+    ) -> subprocess.CompletedProcess[str]:
         assert args[1] == "-Tsvg"
         Path(args[args.index("-o") + 1]).write_text("<svg/>", encoding="utf-8")
-        return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+        return subprocess.CompletedProcess(
+            args=args, returncode=0, stdout="", stderr=""
+        )
 
     monkeypatch.setattr(mod.subprocess, "run", fake_run)
 
@@ -305,8 +320,7 @@ def test_visualize_cfgs_returns_zero_without_difference_flag() -> None:
 
 
 def test_visualize_cfgs_fails_when_file_count_not_equal_two() -> None:
-    rc_one = mod.visualize_cfgs(
-        [Path("a.yml")], dot_exec=Path("dot"), difference=True)
+    rc_one = mod.visualize_cfgs([Path("a.yml")], dot_exec=Path("dot"), difference=True)
     rc_three = mod.visualize_cfgs(
         [Path("a.yml"), Path("b.yml"), Path("c.yml")],
         dot_exec=Path("dot"),
@@ -371,10 +385,10 @@ def test_build_dot_covers_added_and_removed_classification() -> None:
         changed=set(),
     )
 
-    assert '#ccffcc' in dot_text
-    assert '#ffcccc' in dot_text
-    assert 'old' in dot_text
-    assert 'child' in dot_text
+    assert "#ccffcc" in dot_text
+    assert "#ffcccc" in dot_text
+    assert "old" in dot_text
+    assert "child" in dot_text
 
 
 def test_build_dot_classifies_removed_key_present_in_data() -> None:
@@ -386,7 +400,7 @@ def test_build_dot_classifies_removed_key_present_in_data() -> None:
         changed=set(),
     )
 
-    assert '#ffcccc' in dot_text
+    assert "#ffcccc" in dot_text
 
 
 def test_build_dot_handles_list_value_branch() -> None:
