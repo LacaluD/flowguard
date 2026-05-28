@@ -11,7 +11,8 @@ def test_find_yaml_files_with_yaml_file_returns_single_path(tmp_path: Path) -> N
     yml_file = tmp_path / "ci.yml"
     yml_file.write_text("name: test\n", encoding="utf-8")
 
-    result = main_validation_logic._collect_yaml_files(yml_file)
+    result = main_validation_logic._collect_yaml_files(
+        yml_file, excluded_dirs=[])
 
     assert result == [yml_file]
 
@@ -20,7 +21,8 @@ def test_find_yaml_files_with_non_yaml_file_returns_empty_list(tmp_path: Path) -
     txt_file = tmp_path / "notes.txt"
     txt_file.write_text("hello\n", encoding="utf-8")
 
-    result = main_validation_logic._collect_yaml_files(txt_file)
+    result = main_validation_logic._collect_yaml_files(
+        txt_file, excluded_dirs=[])
 
     assert result == []
 
@@ -32,14 +34,16 @@ def test_find_yaml_files_with_directory_collects_yml_and_yaml(tmp_path: Path) ->
     yml_file.write_text("name: root\n", encoding="utf-8")
     yaml_file.write_text("name: nested\n", encoding="utf-8")
 
-    result = main_validation_logic._collect_yaml_files(tmp_path)
+    result = main_validation_logic._collect_yaml_files(
+        tmp_path, excluded_dirs=[])
 
     assert sorted(result) == sorted([yml_file, yaml_file])
 
 
 def test_find_yaml_files_raises_system_exit_for_invalid_path(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
-        main_validation_logic._collect_yaml_files(tmp_path / "missing")
+        main_validation_logic._collect_yaml_files(
+            tmp_path / "missing", excluded_dirs=[])
 
 
 def test_check_for_empty_file_returns_one_for_empty_file(tmp_path: Path) -> None:
@@ -80,10 +84,47 @@ def test_check_for_deprecated_keys_counts_multiple_hits(tmp_path: Path) -> None:
     assert result == 2
 
 
+def test_check_for_deprecated_keys_does_not_match_major_to_semver(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        main_validation_logic,
+        "DEPRECATED_ACTIONS",
+        ["cbrgm/telegram-github-action@v1"],
+    )
+
+    content = "uses: cbrgm/telegram-github-action@v1.4.0"
+
+    result = main_validation_logic.check_for_deprecated_keys(
+        tmp_path / "wf.yml", content)
+
+    assert result == 0
+
+
+def test_check_for_deprecated_keys_matches_equal_version_with_or_without_v(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        main_validation_logic,
+        "DEPRECATED_ACTIONS",
+        ["actions/checkout@v3"],
+    )
+
+    content = "uses: actions/checkout@3"
+
+    result = main_validation_logic.check_for_deprecated_keys(
+        tmp_path / "wf.yml", content)
+
+    assert result == 1
+
+
 def test_check_for_deprecated_keys_returns_zero_for_empty_content(
     tmp_path: Path,
 ) -> None:
-    result = main_validation_logic.check_for_deprecated_keys(tmp_path / "wf.yml", "")
+    result = main_validation_logic.check_for_deprecated_keys(
+        tmp_path / "wf.yml", "")
 
     assert result == 0
 
@@ -170,7 +211,8 @@ def test_run_yq_returns_one_on_subprocess_error(
 
 def test_check_indentation_returns_zero_for_clean_file(tmp_path: Path) -> None:
     yml_file = tmp_path / "clean.yml"
-    yml_file.write_text("name: ci\njobs:\n  build:\n    steps: []\n", encoding="utf-8")
+    yml_file.write_text(
+        "name: ci\njobs:\n  build:\n    steps: []\n", encoding="utf-8")
 
     assert main_validation_logic.check_indentation(yml_file) == 0
 
@@ -198,15 +240,18 @@ def test_check_indentation_ignores_blank_lines(tmp_path: Path) -> None:
 
 def test_validate_config_raises_type_error_for_non_path() -> None:
     with pytest.raises(TypeError):
-        main_validation_logic.validate_config("not_a_path", Path("yq"))
+        main_validation_logic.validate_config(
+            "not_a_path", Path("yq"), excluded_paths=[])
 
 
 def test_validate_config_returns_zero_when_no_yaml_found(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(main_validation_logic, "_collect_yaml_files", lambda _: [])
+    monkeypatch.setattr(main_validation_logic,
+                        "_collect_yaml_files", lambda *_: [])
 
-    result = main_validation_logic.validate_config(tmp_path, Path("yq"))
+    result = main_validation_logic.validate_config(
+        tmp_path, Path("yq"), excluded_paths=[])
 
     assert result == 0
 
@@ -217,17 +262,19 @@ def test_validate_config_returns_one_when_any_error_found(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(
-        main_validation_logic, "_collect_yaml_files", lambda _: [yml_file]
-    )
-    monkeypatch.setattr(main_validation_logic, "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(main_validation_logic,
+                        "_collect_yaml_files", lambda *_: [yml_file])
+    monkeypatch.setattr(main_validation_logic,
+                        "check_for_empty_file", lambda _: 0)
     monkeypatch.setattr(main_validation_logic, "run_yq", lambda **_: 1)
     monkeypatch.setattr(
         main_validation_logic, "check_for_deprecated_keys", lambda *_: 0
     )
-    monkeypatch.setattr(main_validation_logic, "check_indentation", lambda _: 0)
+    monkeypatch.setattr(main_validation_logic,
+                        "check_indentation", lambda _: 0)
 
-    result = main_validation_logic.validate_config(tmp_path, Path("yq"))
+    result = main_validation_logic.validate_config(
+        tmp_path, Path("yq"), excluded_paths=[])
 
     assert result == 1
 
@@ -238,17 +285,19 @@ def test_validate_config_returns_zero_on_success(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(
-        main_validation_logic, "_collect_yaml_files", lambda _: [yml_file]
-    )
-    monkeypatch.setattr(main_validation_logic, "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(main_validation_logic,
+                        "_collect_yaml_files", lambda *_: [yml_file])
+    monkeypatch.setattr(main_validation_logic,
+                        "check_for_empty_file", lambda _: 0)
     monkeypatch.setattr(main_validation_logic, "run_yq", lambda **_: 0)
     monkeypatch.setattr(
         main_validation_logic, "check_for_deprecated_keys", lambda *_: 0
     )
-    monkeypatch.setattr(main_validation_logic, "check_indentation", lambda _: 0)
+    monkeypatch.setattr(main_validation_logic,
+                        "check_indentation", lambda _: 0)
 
-    result = main_validation_logic.validate_config(tmp_path, Path("yq"))
+    result = main_validation_logic.validate_config(
+        tmp_path, Path("yq"), excluded_paths=[])
 
     assert result == 0
 
@@ -261,7 +310,8 @@ def test_run_yq_in_threadpool_includes_optional_checks_when_enabled(
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
     monkeypatch.setattr(main_validation_logic, "EXTENDED_CHECKS", [".name"])
-    monkeypatch.setattr(main_validation_logic, "OPTIONAL_CHECKS", [".jobs[].needs"])
+    monkeypatch.setattr(main_validation_logic,
+                        "OPTIONAL_CHECKS", [".jobs[].needs"])
 
     calls: list[tuple[str, bool]] = []
 
@@ -289,7 +339,8 @@ def test_regular_validation_returns_one_when_validate_config_fails(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 1)
+    monkeypatch.setattr(main_validation_logic,
+                        "validate_config", lambda **_: 1)
     monkeypatch.setattr(
         main_validation_logic,
         "build_dot_scheme",
@@ -300,6 +351,7 @@ def test_regular_validation_returns_one_when_validate_config_fails(
         main_validation_logic.regular_validation(
             cfg_files=yml_file,
             yq_exe=Path("yq"),
+            excluded_paths=[],
             yml2dot_exe=Path("yml2dot"),
         )
         == 1
@@ -334,9 +386,11 @@ def test_build_dot_scheme_returns_none_on_dot_failure(
         )
 
     monkeypatch.setattr(main_validation_logic.subprocess, "Popen", fake_popen)
-    monkeypatch.setattr(main_validation_logic.subprocess, "run", raise_dot_error)
+    monkeypatch.setattr(main_validation_logic.subprocess,
+                        "run", raise_dot_error)
 
-    result = main_validation_logic.build_dot_scheme([yml_file], Path("yml2dot"))
+    result = main_validation_logic.build_dot_scheme(
+        [yml_file], Path("yml2dot"))
 
     assert result is None
 
@@ -367,6 +421,7 @@ def test_build_dot_scheme_returns_last_png_path_on_success(
     monkeypatch.setattr(main_validation_logic.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
 
-    result = main_validation_logic.build_dot_scheme([first, second], Path("yml2dot"))
+    result = main_validation_logic.build_dot_scheme(
+        [first, second], Path("yml2dot"))
 
     assert result == second.with_suffix(".png")

@@ -95,6 +95,7 @@ def main() -> int:
             yq_exe=yq_exe,
             yml2dot_exe=yml2_dot_exe,
             run_optional=not args.no_optional_checks,
+            excluded_paths=args.exclude_dir
         )
 
     if difference:

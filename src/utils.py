@@ -6,9 +6,12 @@ import sys
 from loguru import logger
 
 
-def _collect_yaml_files(yml_directory: Path) -> list[Path]:
+def _collect_yaml_files(
+    yml_directory: Path, excluded_dirs: list[Path] | None = None
+) -> list[Path]:
     """Return all YAML files from a file path or recursively from a directory."""
     path = Path(yml_directory)
+    excluded_dirs = excluded_dirs or []
 
     if path.is_file():
         return [path] if path.suffix.lower() in (".yml", ".yaml") else []
@@ -17,7 +20,12 @@ def _collect_yaml_files(yml_directory: Path) -> list[Path]:
         logger.error(f"'{yml_directory}' is neither a file nor directory")
         sys.exit(1)
 
-    return sorted(list(path.rglob("*.yml")) + list(path.rglob("*.yaml")))
+    all_files = path.rglob("*.yml"), path.rglob("*.yaml")
+
+    return sorted([
+        f for f in (*all_files[0], *all_files[1])
+        if not any(excluded in f.parents for excluded in excluded_dirs)
+    ])
 
 
 def check_for_empty_file(file_path: Path) -> int:

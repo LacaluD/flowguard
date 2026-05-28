@@ -47,6 +47,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="choose dir or file path to configs",
     )
     parser.add_argument(
+        "--exclude-dir",
+        type=Path,
+        nargs="+",
+        help="select dir to pass if search dir is too wide",
+    )
+    parser.add_argument(
         "--quiet",
         "-q",
         action="store_true",

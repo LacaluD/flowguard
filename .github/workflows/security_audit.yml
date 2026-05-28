@@ -18,7 +18,7 @@ jobs:
     container:
       image: python:3.12-slim
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -43,14 +43,14 @@ jobs:
         continue-on-error: false
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6.0.0
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
           verbose: true
 
       - name: Upload Coverage report artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: coverage-report
           path: |
@@ -67,7 +67,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true
@@ -90,7 +90,7 @@ jobs:
 
       - name: Upload Safety report artifact
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: safety-report
           path: docs/safety-report.txt
@@ -107,7 +107,7 @@ jobs:
 
       - name: Upload Bandit report artifact
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: bandit-report
           path: docs/bandit-report.txt
@@ -121,7 +121,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true
@@ -141,7 +141,7 @@ jobs:
 
       - name: Upload mypy report artifact
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: mypy-report
           path: docs/mypy-report.txt
@@ -160,7 +160,7 @@ jobs:
           apt-get update
           apt-get install -y git
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true
@@ -219,7 +219,7 @@ jobs:
           apt-get update
           apt-get install -y git
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true
@@ -283,7 +283,7 @@ jobs:
     steps:
       - name: Download all reports artifact
         if: failure()
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.0
         with:
           name: all-reports
           path: ./reports
@@ -297,7 +297,7 @@ jobs:
 
       - name: Send success telegram message
         if: success()
-        uses: cbrgm/telegram-github-action@v1
+        uses: cbrgm/telegram-github-action@v1.4.0
         with:
           token: ${{ secrets.TG_BOT_TOKEN }}
           to: ${{ secrets.TG_CHAT_ID }}
@@ -313,7 +313,7 @@ jobs:
 
       - name: Send failure telegram message
         if: failure()
-        uses: cbrgm/telegram-github-action@v1
+        uses: cbrgm/telegram-github-action@v1.4.0
         with:
           token: ${{ secrets.TG_BOT_TOKEN }}
           to: ${{ secrets.TG_CHAT_ID }}

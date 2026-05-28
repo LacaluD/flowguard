@@ -33,7 +33,11 @@ def test_validate_config_integration_success_with_mocked_yq(
 
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
 
-    result = main_validation_logic.validate_config(tmp_path, Path("yq"))
+    result = main_validation_logic.validate_config(
+        tmp_path,
+        Path("yq"),
+        excluded_paths=[],
+    )
 
     assert result == 0
 
@@ -51,6 +55,10 @@ def test_validate_config_integration_fails_on_yq_parse_error(
 
     monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
 
-    result = main_validation_logic.validate_config(tmp_path, Path("yq"))
+    result = main_validation_logic.validate_config(
+        tmp_path,
+        Path("yq"),
+        excluded_paths=[],
+    )
 
     assert result == 1

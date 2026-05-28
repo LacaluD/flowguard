@@ -6,6 +6,7 @@ Add this file to .gitignore if using locally.
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import re
 
 from src.constants import (
     INDENT_SIZE,
@@ -22,15 +23,47 @@ from pathlib import Path
 from loguru import logger
 
 
+def _normalize_action_ref(ref: str) -> tuple[str, str] | None:
+    """Parse and normalize `action@version` references for exact matching."""
+    if "@" not in ref:
+        return None
+
+    action, version = ref.split("@", 1)
+    action = action.strip().strip("\"'").lower()
+    version = version.strip().strip("\"'.,;:)").lower()
+
+    if not action or not version:
+        return None
+
+    # Treat vX and X as equivalent labels, but keep full semantic parts.
+    normalized_version = version[1:] if version.startswith("v") else version
+    if not normalized_version:
+        return None
+
+    return action, normalized_version
+
+
 def check_for_deprecated_keys(file_path: Path, content: str) -> int:
     """Return the number of deprecated GitHub Actions references in content."""
     issues = 0
     if not content:
         return 0
 
+    found_refs = {
+        parsed
+        for raw_ref in re.findall(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+){0,2}@[^\s\"']+", content)
+        for parsed in [_normalize_action_ref(raw_ref)]
+        if parsed is not None
+    }
+
     for deprecated in DEPRECATED_ACTIONS:
-        if deprecated in content:
-            logger.warning(f"{file_path} uses deprecated action '{deprecated}'")
+        parsed_deprecated = _normalize_action_ref(deprecated)
+        if parsed_deprecated is None:
+            continue
+
+        if parsed_deprecated in found_refs:
+            logger.warning(
+                f"{file_path} uses deprecated action '{deprecated}'")
             issues += 1
 
     return issues
@@ -61,7 +94,8 @@ def run_yq(
         if expression != ".":
             if output in ("", "null", "false"):
                 if optional:
-                    logger.warning(f"{fpath}: {description} skipped (not present)")
+                    logger.warning(
+                        f"{fpath}: {description} skipped (not present)")
                     return 0
                 logger.error(f"{fpath}: {description} missing")
                 return 1
@@ -121,21 +155,22 @@ def check_indentation(file_path: Path) -> int:
 
 
 def validate_config(
-    yml_path: Path, yq_exec: Path, run_optional: bool = False
+    yml_path: Path, yq_exec: Path, excluded_paths: list[Path], run_optional: bool = False
 ) -> TypeError | int:
     """Validate YAML files and return validated files, or None on validation failure."""
     if not isinstance(yml_path, Path):
         raise TypeError("yml_directory is not proper Path object")
     total_errors = 0
 
-    yaml_files = _collect_yaml_files(yml_path)
-    logger.debug(f"Discovered YAML files: {yaml_files}")
+    yaml_files = _collect_yaml_files(yml_path, excluded_paths)
+    logger.info(f"Discovered YAML files: {yaml_files}\n\n")
 
     if not yaml_files:
         logger.warning(f"No YAML files found in '{yml_path}'")
         return 0
 
     for file_path in yaml_files:
+        errors_before = total_errors
         logger.info(f"{'-' * 60}")
         logger.info(f"Checking: {file_path}")
 
@@ -164,6 +199,13 @@ def validate_config(
         total_errors += check_for_deprecated_keys(file_path, content)
 
         total_errors += check_indentation(file_path)
+        cfg_error_qty = total_errors - errors_before
+        logger.info(f"{'=' * 60}")
+        if cfg_error_qty > 0:
+            logger.warning(
+                f"Errors found in {file_path} - {cfg_error_qty}\n\n")
+        else:
+            logger.success(f"Did not found errors in {file_path}\n\n")
 
     logger.info(f"{'=' * 60}")
     if total_errors > 0:
@@ -211,7 +253,7 @@ def run_yq_in_threadpool(fpath: Path, yq_exec: Path, run_optional: bool = True) 
 
 
 def regular_validation(
-    cfg_files: Path, yq_exe: Path, yml2dot_exe: Path, run_optional: bool = False
+    cfg_files: Path, yq_exe: Path, excluded_paths: list[Path], yml2dot_exe: Path, run_optional: bool = False
 ) -> int:
     """Run the non-schema validation pipeline and diagram generation.
 
@@ -227,19 +269,23 @@ def regular_validation(
         0 when validation and diagram generation succeed.
         1 when validation fails or diagram generation fails.
     """
-    logger.info(f"Running validate config task with optional checks: {run_optional}")
-    res = validate_config(yml_path=cfg_files, yq_exec=yq_exe, run_optional=run_optional)
+    logger.info(
+        f"Running validate config task with optional checks: {run_optional}")
+    res = validate_config(yml_path=cfg_files, yq_exec=yq_exe,
+                          run_optional=run_optional, excluded_paths=excluded_paths)
     if res != 0:
         logger.error("Validation failed")
         return 1
 
     output_file = build_dot_scheme(
-        cfg_files=_collect_yaml_files(cfg_files),
+        cfg_files=_collect_yaml_files(cfg_files, excluded_paths),
         yml2dot_exec=yml2dot_exe,
     )
     if output_file is not None:
-        logger.info(f"Successfully built dot schema, check results: {output_file}")
+        logger.info(
+            f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
+        logger.info(f"{'-' * 60}")
         return 0
 
     logger.warning("Pipeline finished with fail")

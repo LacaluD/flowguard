@@ -1,6 +1,10 @@
 import json
 from pathlib import Path
 
+import jsonschema
+import pytest
+
+from src import validation_by_schema as vbs
 from src.validation_by_schema import validate_against_schema
 
 
@@ -16,7 +20,15 @@ def _write_json_schema(schema_path: Path) -> None:
     schema_path.write_text(json.dumps(schema), encoding="utf-8")
 
 
+def _write_yaml_schema(schema_path: Path) -> None:
+    schema_path.write_text(
+        "type: object\nrequired:\n  - name\nproperties:\n  name:\n    type: string\n",
+        encoding="utf-8",
+    )
+
+
 def test_validate_against_schema_valid_schema_and_yaml_returns_zero(
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     schema_file = tmp_path / "schema.json"
@@ -24,10 +36,74 @@ def test_validate_against_schema_valid_schema_and_yaml_returns_zero(
 
     _write_json_schema(schema_file)
     yaml_file.write_text("name: CI\njobs: {}\n", encoding="utf-8")
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [yaml_file])
 
-    result = validate_against_schema(yml_path=yaml_file, schema_file=schema_file)
+    result = validate_against_schema(
+        yml_path=yaml_file, schema_file=schema_file)
 
     assert result == 0
+
+
+def test_load_schema_accepts_yaml_schema(tmp_path: Path) -> None:
+    schema_file = tmp_path / "schema.yml"
+    _write_yaml_schema(schema_file)
+
+    loaded = vbs._load_schema(schema_file)
+
+    assert loaded["type"] == "object"
+    assert loaded["properties"]["name"]["type"] == "string"
+
+
+def test_load_schema_rejects_non_mapping_schema(tmp_path: Path) -> None:
+    schema_file = tmp_path / "schema.json"
+    schema_file.write_text("[1, 2, 3]", encoding="utf-8")
+
+    with pytest.raises(jsonschema.SchemaError):
+        vbs._load_schema(schema_file)
+
+
+def test_validate_single_yaml_returns_zero_for_valid_yaml(tmp_path: Path) -> None:
+    schema = {"type": "object", "required": ["name"]}
+    yaml_file = tmp_path / "workflow.yml"
+    yaml_file.write_text("name: CI\n", encoding="utf-8")
+
+    assert vbs._validate_single_yaml(yaml_file, schema) == 0
+
+
+def test_validate_single_yaml_returns_one_for_validation_error(
+    tmp_path: Path,
+) -> None:
+    schema = {"type": "object", "required": ["name"]}
+    yaml_file = tmp_path / "workflow.yml"
+    yaml_file.write_text("jobs: {}\n", encoding="utf-8")
+
+    assert vbs._validate_single_yaml(yaml_file, schema) == 1
+
+
+def test_validate_single_yaml_returns_one_for_yaml_parse_error(
+    tmp_path: Path,
+) -> None:
+    schema = {"type": "object"}
+    yaml_file = tmp_path / "broken.yml"
+    yaml_file.write_text("name: [\n", encoding="utf-8")
+
+    assert vbs._validate_single_yaml(yaml_file, schema) == 1
+
+
+def test_validate_single_yaml_returns_one_on_read_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    schema = {"type": "object"}
+    yaml_file = tmp_path / "broken.yml"
+    yaml_file.write_text("name: CI\n", encoding="utf-8")
+
+    def raise_read_error(*args, **kwargs):
+        raise OSError("cannot read")
+
+    monkeypatch.setattr(Path, "read_text", raise_read_error, raising=False)
+
+    assert vbs._validate_single_yaml(yaml_file, schema) == 1
 
 
 def test_validate_against_schema_invalid_schema_returns_one(tmp_path: Path) -> None:
@@ -38,8 +114,13 @@ def test_validate_against_schema_invalid_schema_returns_one(tmp_path: Path) -> N
         '{"type": "object", "properties": "broken"}', encoding="utf-8"
     )
     yaml_file.write_text("name: CI\n", encoding="utf-8")
-
-    result = validate_against_schema(yml_path=yaml_file, schema_file=schema_file)
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [yaml_file])
+    try:
+        result = validate_against_schema(
+            yml_path=yaml_file, schema_file=schema_file)
+    finally:
+        monkeypatch.undo()
 
     assert result == 1
 
@@ -50,8 +131,13 @@ def test_validate_against_schema_invalid_yaml_returns_one(tmp_path: Path) -> Non
 
     _write_json_schema(schema_file)
     yaml_file.write_text("name: [\n", encoding="utf-8")
-
-    result = validate_against_schema(yml_path=yaml_file, schema_file=schema_file)
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [yaml_file])
+    try:
+        result = validate_against_schema(
+            yml_path=yaml_file, schema_file=schema_file)
+    finally:
+        monkeypatch.undo()
 
     assert result == 1
 
@@ -69,8 +155,14 @@ def test_validate_against_schema_directory_with_multiple_files_returns_one_on_an
     _write_json_schema(schema_file)
     valid_file.write_text("name: CI\n", encoding="utf-8")
     invalid_file.write_text("jobs: {}\n", encoding="utf-8")
-
-    result = validate_against_schema(yml_path=yml_dir, schema_file=schema_file)
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(vbs, "_collect_yaml_files",
+                        lambda *_: [valid_file, invalid_file])
+    try:
+        result = validate_against_schema(
+            yml_path=yml_dir, schema_file=schema_file)
+    finally:
+        monkeypatch.undo()
 
     assert result == 1
 
@@ -81,8 +173,13 @@ def test_validate_against_schema_empty_directory_returns_one(tmp_path: Path) -> 
     empty_dir.mkdir()
 
     _write_json_schema(schema_file)
-
-    result = validate_against_schema(yml_path=empty_dir, schema_file=schema_file)
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [])
+    try:
+        result = validate_against_schema(
+            yml_path=empty_dir, schema_file=schema_file)
+    finally:
+        monkeypatch.undo()
 
     assert result == 1
 
@@ -93,7 +190,182 @@ def test_validate_against_schema_empty_yaml_file_returns_one(tmp_path: Path) -> 
 
     _write_json_schema(schema_file)
     empty_yaml.write_text("", encoding="utf-8")
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [empty_yaml])
+    try:
+        result = validate_against_schema(
+            yml_path=empty_yaml, schema_file=schema_file)
+    finally:
+        monkeypatch.undo()
 
-    result = validate_against_schema(yml_path=empty_yaml, schema_file=schema_file)
+    assert result == 1
+
+
+def test_validate_against_schema_returns_one_when_schema_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    yaml_file = tmp_path / "workflow.yml"
+    yaml_file.write_text("name: CI\n", encoding="utf-8")
+    schema_file = tmp_path / "missing.json"
+
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [yaml_file])
+
+    result = validate_against_schema(
+        yml_path=yaml_file, schema_file=schema_file)
+
+    assert result == 1
+
+
+def test_validate_against_schema_returns_one_on_schema_json_parse_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    yaml_file = tmp_path / "workflow.yml"
+    schema_file = tmp_path / "schema.json"
+    yaml_file.write_text("name: CI\n", encoding="utf-8")
+    schema_file.write_text("{broken json", encoding="utf-8")
+
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [yaml_file])
+
+    result = validate_against_schema(
+        yml_path=yaml_file, schema_file=schema_file)
+
+    assert result == 1
+
+
+def test_validate_against_schema_returns_one_on_schema_yaml_parse_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    yaml_file = tmp_path / "workflow.yml"
+    schema_file = tmp_path / "schema.yaml"
+    yaml_file.write_text("name: CI\n", encoding="utf-8")
+    schema_file.write_text("type: [\n", encoding="utf-8")
+
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [yaml_file])
+
+    result = validate_against_schema(
+        yml_path=yaml_file, schema_file=schema_file)
+
+    assert result == 1
+
+
+def test_validate_against_schema_returns_one_on_schema_read_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    yaml_file = tmp_path / "workflow.yml"
+    schema_file = tmp_path / "schema.json"
+    yaml_file.write_text("name: CI\n", encoding="utf-8")
+    _write_json_schema(schema_file)
+
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [yaml_file])
+
+    def raise_read_error(*args, **kwargs):
+        raise OSError("cannot read schema")
+
+    monkeypatch.setattr(Path, "read_text", raise_read_error, raising=False)
+
+    result = validate_against_schema(
+        yml_path=yaml_file, schema_file=schema_file)
+
+    assert result == 1
+
+
+def test_validate_against_schema_returns_one_on_unexpected_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    yaml_file = tmp_path / "workflow.yml"
+    schema_file = tmp_path / "schema.json"
+    yaml_file.write_text("name: CI\n", encoding="utf-8")
+    _write_json_schema(schema_file)
+
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [yaml_file])
+    monkeypatch.setattr(vbs, "_load_schema", lambda _: (
+        _ for _ in ()).throw(RuntimeError("boom")))
+
+    result = validate_against_schema(
+        yml_path=yaml_file, schema_file=schema_file)
+
+    assert result == 1
+
+
+def test_validate_against_schema_returns_one_when_no_yaml_found(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    schema_file = tmp_path / "schema.json"
+    _write_json_schema(schema_file)
+
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [])
+
+    result = validate_against_schema(
+        yml_path=tmp_path, schema_file=schema_file)
+
+    assert result == 1
+
+
+def test_validate_custom_pipeline_returns_zero_on_success(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg_file = tmp_path / "workflow.yml"
+    schema_file = tmp_path / "schema.json"
+    cfg_file.write_text("name: CI\n", encoding="utf-8")
+    _write_json_schema(schema_file)
+
+    monkeypatch.setattr(vbs, "validate_against_schema", lambda **_: 0)
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [cfg_file])
+    monkeypatch.setattr(vbs, "build_dot_scheme", lambda **
+                        _: cfg_file.with_suffix(".png"))
+
+    result = vbs.validate_custom_pipeline(
+        cfg_files=cfg_file, val_schema=schema_file, yml2dot_exe=Path("yml2dot")
+    )
+
+    assert result == 0
+
+
+def test_validate_custom_pipeline_returns_one_on_schema_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg_file = tmp_path / "workflow.yml"
+    schema_file = tmp_path / "schema.json"
+    cfg_file.write_text("name: CI\n", encoding="utf-8")
+    _write_json_schema(schema_file)
+
+    monkeypatch.setattr(vbs, "validate_against_schema", lambda **_: 1)
+    monkeypatch.setattr(
+        vbs,
+        "build_dot_scheme",
+        lambda **_: pytest.fail("build_dot_scheme must not run when schema fails"),
+    )
+
+    result = vbs.validate_custom_pipeline(
+        cfg_files=cfg_file, val_schema=schema_file, yml2dot_exe=Path("yml2dot")
+    )
+
+    assert result == 1
+
+
+def test_validate_custom_pipeline_returns_one_when_build_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg_file = tmp_path / "workflow.yml"
+    schema_file = tmp_path / "schema.json"
+    cfg_file.write_text("name: CI\n", encoding="utf-8")
+    _write_json_schema(schema_file)
+
+    monkeypatch.setattr(vbs, "validate_against_schema", lambda **_: 0)
+    monkeypatch.setattr(vbs, "_collect_yaml_files", lambda *_: [cfg_file])
+    monkeypatch.setattr(vbs, "build_dot_scheme", lambda **_: None)
+
+    result = vbs.validate_custom_pipeline(
+        cfg_files=cfg_file, val_schema=schema_file, yml2dot_exe=Path("yml2dot")
+    )
 
     assert result == 1

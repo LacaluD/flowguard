@@ -12,6 +12,12 @@ It helps teams:
 - validate against JSON Schema,
 - generate visual graphs from YAML configs and config diffs.
 
+Recent updates:
+- deprecated GitHub Actions checks now match action and version explicitly, so `@v1` does not falsely match `@v1.4.0`,
+- recursive YAML collection supports excluded directories such as `.venv`,
+- schema validation and YAML corner cases now have dedicated coverage across success, failure, and edge cases,
+- the test suite is kept aligned with the current CLI flags and pipeline behavior.
+
 ## What flowguard does
 
 flowguard is designed for repositories where configuration quality directly impacts delivery reliability.
@@ -35,7 +41,8 @@ Key operational behavior:
 - deterministic exit codes (0 success, 1 failure),
 - `--quiet` mode for cleaner CI logs,
 - separation of warning/error output and regular output,
-- automatic external binary discovery with optional recursive fallback in custom directories.
+- automatic external binary discovery with optional recursive fallback in custom directories,
+- optional directory exclusions for broad repository scans via `--exclude-dir`.
 
 ## Demo
 
@@ -155,6 +162,12 @@ Schema validation pipeline:
 python main.py --files schema_examples/schema_example_valid.yml --schema schema_examples/schema_example.json
 ```
 
+Exclude generated or local environment directories from a broad scan:
+
+```bash
+python main.py --files . --exclude-dir .venv .git node_modules
+```
+
 Disable optional checks:
 
 ```bash
@@ -224,11 +237,22 @@ Run all tests:
 python -m pytest -q -c configs/pytest.ini
 ```
 
+Current suite size:
+
+The repository currently keeps the full suite at 170 tests.
+
 Run with coverage:
 
 ```bash
 python -m coverage run -m pytest -q -c configs/pytest.ini
 python -m coverage report --fail-under=90
+```
+
+Targeted module coverage checks:
+
+```bash
+python -m pytest -q -c configs/pytest.ini tests/test_validate_by_schema.py tests/test_yaml_corner_cases.py
+python -m pytest -q -c configs/pytest.ini --cov=src.validation_by_schema --cov-report=term-missing tests/test_validate_by_schema.py tests/test_yaml_corner_cases.py
 ```
 
 Run golden tests:
@@ -277,7 +301,9 @@ python -m pytest -q tests/test_golden.py -c configs/pytest.ini --update-golden
 Implemented:
 - CI-friendly output and exit codes
 - JSON Schema validation
+- exact-version deprecated action detection
 - Batch mode and recursive search
+- excluded-directory scans for large repositories
 - Golden integration tests
 - Corner-case YAML tests (Unicode, BOM, CRLF, indentation)
 - Coverage threshold in CI

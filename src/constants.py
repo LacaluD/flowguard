@@ -6,8 +6,13 @@ future configuration extraction straightforward.
 
 from typing import Final
 
-INDENT_SIZE: Final[int] = 2
+PROJECT_DESCRIPTION = """
+    flowguard is a command-line tool for validating YAML configuration files and visualizing their structure.
+    It combines yq-based checks, JSON Schema validation, and graph generation to make configuration quality
+    gates CI-friendly and easier to debug.
+    """
 
+INDENT_SIZE: Final[int] = 2
 
 EXTENDED_CHECKS: Final[list[str]] = [
     # obligatory
@@ -35,6 +40,7 @@ OPTIONAL_CHECKS: Final[list[str]] = [
 ]
 
 
+# Will be used later
 # EXTENDED_CHECKS: Final[list[str]] = [
 #     # obligatory
 #     ".name",
@@ -90,47 +96,109 @@ DEPRECATED_ACTIONS: Final[list[str]] = [
     "actions/setup-node@v3",
     "actions/setup-java@v1",
     "actions/setup-java@v2",
+    "actions/setup-java@v3",
+    "actions/setup-go@v1",
+    "actions/setup-go@v2",
+    "actions/setup-go@v3",
+    "actions/setup-dotnet@v1",
+    "actions/setup-dotnet@v2",
     "actions/cache@v1",
     "actions/cache@v2",
+    "actions/cache@v3",
     "actions/upload-artifact@v1",
     "actions/upload-artifact@v2",
     "actions/upload-artifact@v3",
     "actions/download-artifact@v1",
     "actions/download-artifact@v2",
     "actions/download-artifact@v3",
+    "actions/download-artifact@v4",
     "actions/github-script@v1",
     "actions/github-script@v2",
     "actions/github-script@v3",
     "actions/github-script@v4",
     "actions/github-script@v5",
+    "actions/stale@v1",
+    "actions/stale@v2",
+    "actions/stale@v3",
+    "actions/stale@v4",
+    "actions/labeler@v1",
+    "actions/labeler@v2",
+    "actions/labeler@v3",
+    "actions/first-interaction@v1",
+    "actions/create-release@v1",
+    "actions/upload-release-asset@v1",
     # docker/
     "docker/login-action@v1",
+    "docker/login-action@v2",
     "docker/build-push-action@v1",
     "docker/build-push-action@v2",
+    "docker/build-push-action@v3",
     "docker/metadata-action@v1",
     "docker/metadata-action@v2",
     "docker/metadata-action@v3",
+    "docker/setup-buildx-action@v1",
+    "docker/setup-buildx-action@v2",
+    "docker/setup-qemu-action@v1",
+    "docker/setup-qemu-action@v2",
     # aws
     "aws-actions/configure-aws-credentials@v1",
     "aws-actions/configure-aws-credentials@v2",
+    "aws-actions/configure-aws-credentials@v3",
+    "aws-actions/amazon-ecr-login@v1",
+    "aws-actions/amazon-ecs-deploy-task-definition@v1",
     # google
     "google-github-actions/auth@v0",
+    "google-github-actions/auth@v1",
     "google-github-actions/setup-gcloud@v0",
+    "google-github-actions/setup-gcloud@v1",
+    "google-github-actions/deploy-cloudrun@v0",
+    "google-github-actions/deploy-cloudrun@v1",
     # hashicorp
     "hashicorp/setup-terraform@v1",
     "hashicorp/setup-terraform@v2",
     # codecov
     "codecov/codecov-action@v1",
     "codecov/codecov-action@v2",
+    "codecov/codecov-action@v3",
+    # github
+    "github/codeql-action/init@v1",
+    "github/codeql-action/analyze@v1",
+    "github/codeql-action/autobuild@v1",
+    "github/super-linter@v3",
+    "github/super-linter@v4",
+    # sonarsource
+    "sonarsource/sonarcloud-github-action@v1",
+    "sonarsource/sonarcloud-github-action@v2",
+    # jetbrains
+    "JetBrains/qodana-action@v2021",
+    "JetBrains/qodana-action@v2022",
+    "JetBrains/qodana-action@v2023",
     # telegram
     "telegram-action@v1",
     "appleboy/telegram-action@v0.1.0",
     "appleboy/telegram-action@v0.1.1",
+    "cbrgm/telegram-github-action@v1",
+    # slack
+    "slackapi/slack-github-action@v1.1.0",
+    "slackapi/slack-github-action@v1.2.0",
+    "slackapi/slack-github-action@v1.3.0",
+    "slackapi/slack-github-action@v1.4.0",
+    "slackapi/slack-github-action@v1.5.0",
+    "slackapi/slack-github-action@v1.6.0",
+    "8398a7/action-slack@v2",
+    "8398a7/action-slack@v3",
+    # peter-evans
+    "peter-evans/create-pull-request@v3",
+    "peter-evans/create-pull-request@v4",
+    "peter-evans/find-comment@v1",
+    "peter-evans/find-comment@v2",
+    "peter-evans/create-or-update-comment@v1",
+    "peter-evans/create-or-update-comment@v2",
+    # softprops
+    "softprops/action-gh-release@v1",
+    # EndBug
+    "EndBug/add-and-commit@v7",
+    "EndBug/add-and-commit@v8",
+    # stefanzweifel
+    "stefanzweifel/git-auto-commit-action@v4",
 ]
-
-
-PROJECT_DESCRIPTION = """
-    flowguard is a command-line tool for validating YAML configuration files and visualizing their structure.
-    It combines yq-based checks, JSON Schema validation, and graph generation to make configuration quality
-    gates CI-friendly and easier to debug.
-    """

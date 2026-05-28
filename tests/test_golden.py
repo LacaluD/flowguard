@@ -32,7 +32,12 @@ def _configure_test_logging(quiet: bool = False) -> logging.Logger:
 
 
 def _fake_regular_validation(
-    *, cfg_files: Path, yq_exe: Path, yml2dot_exe: Path, run_optional: bool = False
+    *,
+    cfg_files: Path,
+    yq_exe: Path,
+    excluded_paths: list[Path] | None = None,
+    yml2dot_exe: Path,
+    run_optional: bool = False,
 ) -> int:
     try:
         yaml.safe_load(cfg_files.read_text(encoding="utf-8"))
@@ -53,7 +58,8 @@ def run_and_capture(yml_file: Path) -> str:
     with patch("sys.stdout", captured):
         with patch(
             "src.logger.MainLogger.init_logger",
-            side_effect=lambda quiet=False: _configure_test_logging(quiet=quiet),
+            side_effect=lambda quiet=False: _configure_test_logging(
+                quiet=quiet),
         ):
             with patch("main.find_executable", side_effect=lambda _: Path("/bin/tool")):
                 with patch(
