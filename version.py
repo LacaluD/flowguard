@@ -1,3 +1,3 @@
-__version__ = "0.0.2"
-__build__ = "17"
-__commit__ = "e83fef1"
+__version__ = '0.0.2'
+__build__ = '18'
+__commit__ = '67df90a'
