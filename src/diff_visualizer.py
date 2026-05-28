@@ -196,7 +196,7 @@ def _build_dot(
     def node_id(key: str) -> str:
         """Build a stable DOT node identifier from a key path."""
         safe = key.replace(".", "_").replace("-", "_").replace(" ", "_")
-        suffix = hashlib.md5(key.encode()).hexdigest()[:6]
+        suffix = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:6]
         return f"{safe}_{suffix}"
 
     def classify(key: str) -> str:
