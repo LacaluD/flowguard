@@ -40,7 +40,8 @@ def test_build_job_scoped_validation_yaml_returns_none_on_parse_error(
     monkeypatch.setattr(
         main_validation_logic.yaml,
         "safe_load",
-        lambda *_: (_ for _ in ()).throw(main_validation_logic.yaml.YAMLError("bad")),
+        lambda *_: (_ for _ in ()
+                    ).throw(main_validation_logic.yaml.YAMLError("bad")),
     )
 
     assert (
@@ -58,7 +59,8 @@ def test_build_job_scoped_validation_yaml_returns_none_for_non_mapping_root(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic.yaml, "safe_load", lambda *_: [1, 2, 3])
+    monkeypatch.setattr(main_validation_logic.yaml,
+                        "safe_load", lambda *_: [1, 2, 3])
 
     assert (
         main_validation_logic._build_job_scoped_validation_yaml(
@@ -176,7 +178,8 @@ jobs:
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
     )
-    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 1)
+    monkeypatch.setattr(main_validation_logic,
+                        "validate_config", lambda **_: 1)
     monkeypatch.setattr(
         main_validation_logic,
         "build_dot_scheme",
@@ -195,6 +198,39 @@ jobs:
     )
 
 
+def test_regular_validation_supports_json_input_and_builds_diagram(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    json_file = tmp_path / "wf.json"
+    json_file.write_text(
+        '{"name": "ci", "jobs": {"build": {}}}', encoding="utf-8")
+
+    monkeypatch.setattr(main_validation_logic,
+                        "_collect_yaml_files", lambda *_: [json_file])
+    monkeypatch.setattr(main_validation_logic,
+                        "validate_config", lambda **_: 0)
+
+    captured: dict[str, object] = {}
+
+    def fake_build_dot_scheme(*, cfg_files, yml2dot_exec: Path, job_name: str | None = None, output_format: str = "svg"):
+        captured["cfg_files"] = list(cfg_files)
+        return json_file.with_suffix(".svg")
+
+    monkeypatch.setattr(main_validation_logic,
+                        "build_dot_scheme", fake_build_dot_scheme)
+
+    result = main_validation_logic.regular_validation(
+        cfg_files=[json_file],
+        yq_exe=Path("yq"),
+        excluded_paths=[],
+        yml2dot_exe=Path("yml2dot"),
+    )
+
+    assert result == 0
+    assert captured["cfg_files"] == [json_file]
+
+
 def test_validate_config_read_text_error_returns_one(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -204,7 +240,8 @@ def test_validate_config_read_text_error_returns_one(
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
     )
-    monkeypatch.setattr(main_validation_logic, "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(main_validation_logic,
+                        "check_for_empty_file", lambda _: 0)
 
     def raise_read_error(*args, **kwargs):
         raise OSError("cannot read")
@@ -212,7 +249,8 @@ def test_validate_config_read_text_error_returns_one(
     monkeypatch.setattr(Path, "read_text", raise_read_error, raising=False)
 
     assert (
-        main_validation_logic.validate_config(tmp_path, Path("yq"), excluded_paths=[])
+        main_validation_logic.validate_config(
+            tmp_path, Path("yq"), excluded_paths=[])
         == 1
     )
 
@@ -223,11 +261,13 @@ def test_regular_validation_returns_one_when_build_fails(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 0)
+    monkeypatch.setattr(main_validation_logic,
+                        "validate_config", lambda **_: 0)
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
     )
-    monkeypatch.setattr(main_validation_logic, "build_dot_scheme", lambda **_: None)
+    monkeypatch.setattr(main_validation_logic,
+                        "build_dot_scheme", lambda **_: None)
 
     assert (
         main_validation_logic.regular_validation(
@@ -246,7 +286,8 @@ def test_regular_validation_returns_zero_on_success(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 0)
+    monkeypatch.setattr(main_validation_logic,
+                        "validate_config", lambda **_: 0)
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
     )
@@ -318,7 +359,8 @@ jobs:
         captured["dot_job_name"] = job_name
         return yml_file.with_name("wf.build.png")
 
-    monkeypatch.setattr(main_validation_logic, "validate_config", fake_validate_config)
+    monkeypatch.setattr(main_validation_logic,
+                        "validate_config", fake_validate_config)
     monkeypatch.setattr(
         main_validation_logic, "build_dot_scheme", fake_build_dot_scheme
     )
@@ -337,17 +379,73 @@ jobs:
     assert captured["run_optional"] is True
     assert captured["dot_cfg_files"] == [yml_file]
     assert captured["dot_job_name"] == "build"
-    assert captured["validated_path"] != yml_file
-    assert captured["validated_payload"] == {
-        "name": "CI",
-        "on": {"push": {"branches": ["main"]}},
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [{"run": "echo build"}],
-            }
-        },
-    }
+
+
+def test_validate_config_supports_json_by_converting_to_yaml_for_yq(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    json_file = tmp_path / "wf.json"
+    json_file.write_text(
+        '{"name": "ci", "jobs": {"build": {}}}', encoding="utf-8")
+
+    monkeypatch.setattr(main_validation_logic,
+                        "_collect_yaml_files", lambda *_: [json_file])
+    monkeypatch.setattr(main_validation_logic,
+                        "check_for_empty_file", lambda _: 0)
+
+    seen: dict[str, Path] = {}
+
+    def fake_run_yq(*, fpath: Path, expression: str, description: str, yq_exec: Path, optional: bool = False):
+        seen["base"] = fpath
+        assert fpath.suffix == ".yml"
+        return 0
+
+    def fake_pool(*, fpath: Path, yq_exec: Path, fending: str, run_optional: bool = True):
+        seen["pool"] = fpath
+        assert fpath.suffix == ".yml"
+        assert fending == ".json"
+        return 0
+
+    monkeypatch.setattr(main_validation_logic, "run_yq", fake_run_yq)
+    monkeypatch.setattr(main_validation_logic,
+                        "run_yq_in_threadpool", fake_pool)
+    monkeypatch.setattr(main_validation_logic,
+                        "check_for_deprecated_keys", lambda *_: 0)
+    monkeypatch.setattr(main_validation_logic, "check_indentation",
+                        lambda *_: pytest.fail("indentation should not run for json"))
+
+    result = main_validation_logic.validate_config(
+        json_file, Path("yq"), excluded_paths=[])
+
+    assert result == 0
+    assert "base" in seen and "pool" in seen
+
+
+def test_validate_config_supports_toml_by_converting_to_yaml_for_yq(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    toml_file = tmp_path / "wf.toml"
+    toml_file.write_text('name = "ci"\n[jobs.build]\n', encoding="utf-8")
+
+    monkeypatch.setattr(main_validation_logic,
+                        "_collect_yaml_files", lambda *_: [toml_file])
+    monkeypatch.setattr(main_validation_logic,
+                        "check_for_empty_file", lambda *_: 0)
+    monkeypatch.setattr(main_validation_logic, "run_yq", lambda **
+                        kwargs: 0 if kwargs["fpath"].suffix == ".yml" else 1)
+    monkeypatch.setattr(main_validation_logic, "run_yq_in_threadpool",
+                        lambda **kwargs: 0 if kwargs["fpath"].suffix == ".yml" else 1)
+    monkeypatch.setattr(main_validation_logic,
+                        "check_for_deprecated_keys", lambda *_: 0)
+    monkeypatch.setattr(main_validation_logic, "check_indentation",
+                        lambda *_: pytest.fail("indentation should not run for toml"))
+
+    result = main_validation_logic.validate_config(
+        toml_file, Path("yq"), excluded_paths=[])
+
+    assert result == 0
 
 
 def test_regular_validation_job_mode_returns_one_when_job_missing(

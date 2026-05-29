@@ -1,0 +1,33 @@
+{
+  "name": "my-pipeline",
+  "jobs": {
+    "lint": {
+      "runs-on": "ubuntu-latest",
+      "steps": [
+        {"name": "Run linter", "run": "flake8 ."},
+        {"name": "Check types", "run": "mypy ."}
+      ]
+    },
+    "test": {
+      "runs-on": "ubuntu-latest",
+      "needs": "lint",
+      "steps": [
+        {"name": "Run tests", "run": "pytest"}
+      ]
+    },
+    "security": {
+      "runs-on": "ubuntu-latest",
+      "needs": "lint",
+      "steps": [
+        {"name": "Security scan", "run": "bandit -r ."}
+      ]
+    },
+    "deploy": {
+      "runs-on": "ubuntu-latest",
+      "needs": ["test", "security"],
+      "steps": [
+        {"name": "Deploy to prod", "run": "./deploy.sh prod"}
+      ]
+    }
+  }
+}

@@ -7,7 +7,7 @@
 flowguard is a CLI tool for configuration validation and structure visualization.
 
 It helps teams:
-- validate YAML files in CI with predictable exit codes,
+- validate YAML, JSON, and TOML config files in CI with predictable exit codes,
 - enforce required and optional checks via yq expressions,
 - validate against JSON Schema,
 - generate visual graphs from YAML configs and config diffs.
@@ -54,11 +54,11 @@ Key operational behavior:
 
 ## Core capabilities
 
-- Validate one file or recursively process a directory
+- Validate one file or recursively process a directory (YAML, JSON, TOML)
 - Run required and optional yq checks over YAML structure
 - Detect deprecated GitHub Actions references
 - Validate indentation and whitespace issues
-- Validate YAML against JSON Schema
+- Validate YAML, JSON, and TOML against JSON Schema
 - Build diagrams from YAML via yml2dot and Graphviz
 - Build config difference graphs in svg, png, or dot format
 - Discover external binaries automatically, with optional recursive search in custom folder
@@ -146,6 +146,10 @@ Basic validation:
 
 ```bash
 python main.py --files demo/demo_small_v2.yml
+
+# JSON and TOML are also supported in regular mode
+python main.py --files demo/config.json
+python main.py --files demo/config.toml
 ```
 
 Directory validation:
@@ -321,7 +325,12 @@ flowguard
 
 ## Status
 
-Implemented:
+### Implemented:
+
+Fix orphaned nodes in diff graph and add JSON/TOML input support
+- Fixed orphaned removed nodes in _build_dot by tracking declared_nodes
+- Added ancestor resolution for removed keys without parents in graph
+- Extended input support to YAML, JSON, and TOML formats
 
 - Added exclude-dir argument
 - CI-friendly output and exit codes
@@ -333,12 +342,13 @@ Implemented:
 - Corner-case YAML tests (Unicode, BOM, CRLF, indentation)
 - Coverage threshold in CI
 
-Planned:
+### Planned:
 
-- In Progress Better graph features for specific jobs/sections
-- Relationship-focused visualization
 - Additional output/reporting improvements
+- Refactor and Optimize
 
-- In Progress visualize per-job graphs and inter-job dependencies,
-- render YAML anchors, references, and nested relationships,
-- supports YAML, JSON, TOML as input formats.
+### After release
+
+- Enhanced per-job/section graph detail and dependency mapping
+- YAML anchors, references, and nested relationship rendering
+- Relationship-focused visualization

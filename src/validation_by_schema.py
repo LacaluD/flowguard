@@ -1,6 +1,6 @@
-"""JSON Schema validation helpers for YAML configuration files.
+"""JSON Schema validation helpers for configuration files.
 
-This module validates YAML files against a JSON Schema document.
+This module validates YAML/JSON/TOML files against a JSON Schema document.
 Schema can be provided in JSON or YAML format. The validator supports
 both a single YAML file path and a directory path (recursive lookup).
 """
@@ -8,6 +8,7 @@ both a single YAML file path and a directory path (recursive lookup).
 from loguru import logger
 
 import json
+import tomllib
 from typing import Any
 from pathlib import Path
 from collections.abc import Sequence
@@ -23,7 +24,8 @@ def _load_schema(schema_file: Path) -> dict[str, Any]:
     """Load schema from JSON/YAML file and return mapping object."""
     schema_text = schema_file.read_text(encoding="utf-8")
     is_yaml_schema = schema_file.suffix.lower() in (".yml", ".yaml")
-    loaded = yaml.safe_load(schema_text) if is_yaml_schema else json.loads(schema_text)
+    loaded = yaml.safe_load(
+        schema_text) if is_yaml_schema else json.loads(schema_text)
 
     if not isinstance(loaded, dict):
         raise jsonschema.SchemaError("Schema root must be a JSON object")
@@ -32,17 +34,36 @@ def _load_schema(schema_file: Path) -> dict[str, Any]:
 
 
 def _validate_single_yaml(yaml_file: Path, schema: dict[str, Any]) -> int:
-    """Validate one YAML file against an already loaded schema."""
+    """Validate one config file against an already loaded schema."""
     try:
-        data = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
+        text = yaml_file.read_text(encoding="utf-8")
+        suffix = yaml_file.suffix.lower()
+        if suffix in (".yml", ".yaml"):
+            data = yaml.safe_load(text)
+        elif suffix == ".json":
+            data = json.loads(text)
+        elif suffix == ".toml":
+            data = tomllib.loads(text)
+        else:
+            logger.error(
+                f"Unsupported config format for schema validation: {yaml_file}")
+            return 1
+
         jsonschema.validate(instance=data, schema=schema)
         logger.info(f"{yaml_file} is valid against schema")
         return 0
     except jsonschema.ValidationError as exc:
-        logger.error(f"{yaml_file}: {exc.message} at {list(exc.absolute_path)}")
+        logger.error(
+            f"{yaml_file}: {exc.message} at {list(exc.absolute_path)}")
         return 1
     except yaml.YAMLError as exc:
         logger.error(f"YAML parse error in {yaml_file}: {exc}")
+        return 1
+    except json.JSONDecodeError as exc:
+        logger.error(f"JSON parse error in {yaml_file}: {exc}")
+        return 1
+    except tomllib.TOMLDecodeError as exc:
+        logger.error(f"TOML parse error in {yaml_file}: {exc}")
         return 1
     except OSError as exc:
         logger.error(f"Failed to read YAML file {yaml_file}: {exc}")
@@ -50,20 +71,21 @@ def _validate_single_yaml(yaml_file: Path, schema: dict[str, Any]) -> int:
 
 
 def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
-    """Validate YAML file(s) against JSON Schema.
+    """Validate config file(s) against JSON Schema.
 
     Args:
-        yml_path: Path to a YAML file or a directory with YAML files.
+        yml_path: Path to a supported config file or a directory with configs.
         schema_file: Path to schema file in JSON, YML, or YAML format.
 
     Returns:
-        0 if all discovered YAML files are valid.
+        0 if all discovered config files are valid.
         1 if at least one file is invalid or an operational error occurs.
     """
     try:
         yaml_files = _collect_yaml_files(yml_path)
         if not yaml_files:
-            logger.error(f"No YAML files found for schema validation in '{yml_path}'")
+            logger.error(
+                f"No config files found for schema validation in '{yml_path}'")
             return 1
 
         if not schema_file.exists():
@@ -142,7 +164,8 @@ def validate_custom_pipeline(
         output_format=output_format,
     )
     if output_file is not None:
-        logger.info(f"Successfully built dot schema, check results: {output_file}")
+        logger.info(
+            f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         return 0
 

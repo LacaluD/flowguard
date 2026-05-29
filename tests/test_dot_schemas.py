@@ -25,7 +25,8 @@ def test_build_dot_scheme_returns_none_when_yml2dot_fails_with_stderr(
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
     monkeypatch.setattr(
-        dot_schemas.logger, "error", lambda message: errors.append(str(message))
+        dot_schemas.logger, "error", lambda message: errors.append(
+            str(message))
     )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
@@ -106,7 +107,8 @@ def test_build_dot_scheme_logs_dot_stderr_when_dot_fails(
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
     monkeypatch.setattr(
-        dot_schemas.logger, "error", lambda message: errors.append(str(message))
+        dot_schemas.logger, "error", lambda message: errors.append(
+            str(message))
     )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
@@ -166,10 +168,87 @@ def test_build_dot_scheme_job_mode_returns_none_when_job_missing(
     )
 
     def fail_if_called(*_args, **_kwargs):
-        pytest.fail("subprocess.run must not be called when selected job is missing")
+        pytest.fail(
+            "subprocess.run must not be called when selected job is missing")
 
     monkeypatch.setattr(dot_schemas.subprocess, "run", fail_if_called)
 
-    result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"), job_name="build")
+    result = dot_schemas.build_dot_scheme(
+        [yml_file], Path("yml2dot"), job_name="build")
 
     assert result is None
+
+
+def test_build_dot_scheme_supports_json_input_via_temp_yaml(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    json_file = tmp_path / "wf.json"
+    json_file.write_text(
+        '{"name":"ci","jobs":{"build":{"runs-on":"ubuntu-latest"}}}', encoding="utf-8")
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, *args, **kwargs):
+        calls.append([str(part) for part in cmd])
+        if cmd[0] == "yml2dot":
+            source_path = Path(cmd[1])
+            assert source_path.suffix == ".yml"
+            assert "name:" in source_path.read_text(encoding="utf-8")
+            return subprocess.CompletedProcess(
+                args=cmd,
+                returncode=0,
+                stdout=b"digraph G {}",
+                stderr=b"",
+            )
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=0,
+            stdout=b"",
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
+
+    result = dot_schemas.build_dot_scheme([json_file], Path("yml2dot"))
+
+    assert result == json_file.with_suffix(".svg")
+    assert calls and calls[0][0] == "yml2dot"
+
+
+def test_build_dot_scheme_supports_toml_input_via_temp_yaml(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    toml_file = tmp_path / "wf.toml"
+    toml_file.write_text(
+        'name = "ci"\n[jobs.build]\n"runs-on" = "ubuntu-latest"\n',
+        encoding="utf-8",
+    )
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, *args, **kwargs):
+        calls.append([str(part) for part in cmd])
+        if cmd[0] == "yml2dot":
+            source_path = Path(cmd[1])
+            assert source_path.suffix == ".yml"
+            return subprocess.CompletedProcess(
+                args=cmd,
+                returncode=0,
+                stdout=b"digraph G {}",
+                stderr=b"",
+            )
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=0,
+            stdout=b"",
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
+
+    result = dot_schemas.build_dot_scheme([toml_file], Path("yml2dot"))
+
+    assert result == toml_file.with_suffix(".svg")
+    assert calls and calls[0][0] == "yml2dot"

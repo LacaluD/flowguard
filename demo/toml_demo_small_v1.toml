@@ -1,0 +1,24 @@
+name = "data-pipeline"
+
+[jobs.extract]
+runs-on = "ubuntu-latest"
+
+[[jobs.extract.steps]]
+name = "Pull data"
+run = "python extract.py"
+
+[jobs.transform]
+runs-on = "ubuntu-latest"
+needs = "extract"
+
+[[jobs.transform.steps]]
+name = "Transform"
+run = "python transform.py"
+
+[jobs.load]
+runs-on = "ubuntu-latest"
+needs = "transform"
+
+[[jobs.load.steps]]
+name = "Load to DB"
+run = "python load.py"

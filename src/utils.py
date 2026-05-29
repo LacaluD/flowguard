@@ -1,36 +1,67 @@
 """"""
 
+import json
+import tomllib
+
 from src.logger import log_exception_short
 from pathlib import Path
 import sys
 from loguru import logger
 from typing import Any
 from collections.abc import Mapping
+import yaml
+
+
+SUPPORTED_CONFIG_EXTENSIONS = (".yml", ".yaml", ".json", ".toml")
 
 
 def _collect_yaml_files(
     yml_directory: Path, excluded_dirs: list[Path] | None = None
 ) -> list[Path]:
-    """Return all YAML files from a file path or recursively from a directory."""
+    """Return supported config files from a file path or recursively from a directory.
+
+    Supported extensions: .yml, .yaml, .json, .toml.
+    """
     path = Path(yml_directory)
     excluded_dirs = excluded_dirs or []
 
     if path.is_file():
-        return [path] if path.suffix.lower() in (".yml", ".yaml") else []
+        return [path] if path.suffix.lower() in SUPPORTED_CONFIG_EXTENSIONS else []
 
-    if not path.is_dir():
+    if not path.exists():
+        logger.error(f"'{yml_directory}' does not exist")
+        sys.exit(1)
+
+    if not path.is_dir() and not path.is_file():
         logger.error(f"'{yml_directory}' is neither a file nor directory")
         sys.exit(1)
 
-    all_files = path.rglob("*.yml"), path.rglob("*.yaml")
+    all_files = [
+        file_path
+        for ext in SUPPORTED_CONFIG_EXTENSIONS
+        for file_path in path.rglob(f"*{ext}")
+    ]
 
     return sorted(
         [
             f
-            for f in (*all_files[0], *all_files[1])
+            for f in all_files
             if not any(excluded in f.parents for excluded in excluded_dirs)
         ]
     )
+
+
+def _load_config_data(cfg_file: Path) -> object:
+    """Load config data from YAML, JSON, or TOML file."""
+    suffix = cfg_file.suffix.lower()
+    text = cfg_file.read_text(encoding="utf-8")
+    if suffix in (".yml", ".yaml"):
+        return yaml.safe_load(text)
+    if suffix == ".json":
+        return json.loads(text)
+    if suffix == ".toml":
+        return tomllib.loads(text)
+    raise ValueError(f"Unsupported config format: {cfg_file.suffix}")
 
 
 def check_for_empty_file(file_path: Path) -> int:
@@ -105,7 +136,8 @@ def _extract_job_view(data: Any, job_name: str, file_path: Path) -> dict[str, An
         raise ValueError(f"{file_path}: top-level 'jobs' mapping is missing")
 
     if job_name not in jobs:
-        raise ValueError(f"{file_path}: job '{job_name}' not found under 'jobs'")
+        raise ValueError(
+            f"{file_path}: job '{job_name}' not found under 'jobs'")
 
     selected: dict[str, Any] = {"jobs": {job_name: jobs[job_name]}}
     if "name" in data:

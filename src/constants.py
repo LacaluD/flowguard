@@ -14,10 +14,13 @@ PROJECT_DESCRIPTION = """
 
 INDENT_SIZE: Final[int] = 2
 
+YAML_ONLY_CHECKS: Final[list[str]] = [
+    ".on",
+]
+
 EXTENDED_CHECKS: Final[list[str]] = [
     # obligatory
     ".name",
-    ".on",
     ".jobs",
     # obligatory inside job
     '.jobs[]."runs-on"',

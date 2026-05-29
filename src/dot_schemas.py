@@ -10,12 +10,11 @@ from pathlib import Path
 import subprocess
 import tempfile
 import re
-
 import yaml
 from loguru import logger
 
 from src.logger import log_exception_short
-from src.utils import count_timeout, _extract_job_view
+from src.utils import count_timeout, _extract_job_view, _load_config_data
 
 
 def _safe_job_filename(job_name: str) -> str:
@@ -29,7 +28,8 @@ def _build_selected_job_yaml(cfg_file: Path, job_name: str) -> Path | None:
     """
     try:
         loaded = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
-        payload = _extract_job_view(loaded, job_name=job_name, file_path=cfg_file)
+        payload = _extract_job_view(
+            loaded, job_name=job_name, file_path=cfg_file)
     except (yaml.YAMLError, ValueError) as exc:
         logger.error(str(exc))
         return None
@@ -38,6 +38,21 @@ def _build_selected_job_yaml(cfg_file: Path, job_name: str) -> Path | None:
     )
     with tmp as handle:
         yaml.safe_dump(payload, handle, sort_keys=False, allow_unicode=True)
+    return Path(tmp.name)
+
+
+def _build_yaml_from_supported_config(cfg_file: Path) -> Path | None:
+    """Convert any supported config into temporary YAML for yml2dot."""
+    try:
+        loaded = _load_config_data(cfg_file)
+    except Exception as exc:
+        logger.error(f"Failed to parse {cfg_file}: {exc}")
+        return None
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yml", encoding="utf-8", delete=False
+    )
+    with tmp as handle:
+        yaml.safe_dump(loaded, handle, sort_keys=False, allow_unicode=True)
     return Path(tmp.name)
 
 
@@ -64,7 +79,8 @@ def build_dot_scheme(
     for f in cfg_files:
         f = Path(f)
         output_file = (
-            f.with_name(f"{f.stem}.{_safe_job_filename(job_name)}.{output_format}")
+            f.with_name(
+                f"{f.stem}.{_safe_job_filename(job_name)}.{output_format}")
             if job_name
             else f.with_suffix(f".{output_format}")
         )
@@ -72,11 +88,28 @@ def build_dot_scheme(
         source_path = f
         temp_input: Path | None = None
 
-        if job_name:
-            temp_input = _build_selected_job_yaml(cfg_file=f, job_name=job_name)
+        if f.suffix.lower() in (".json", ".toml"):
+            temp_input = _build_yaml_from_supported_config(cfg_file=f)
             if temp_input is None:
                 return None
             source_path = temp_input
+
+        if job_name:
+            source_for_job = source_path
+            if source_for_job != f:
+                # Use the already-converted temporary YAML as input for job extraction.
+                source_for_job = source_path
+            job_temp_input = _build_selected_job_yaml(
+                cfg_file=source_for_job, job_name=job_name
+            )
+            if job_temp_input is None:
+                if temp_input is not None:
+                    temp_input.unlink(missing_ok=True)
+                return None
+            if temp_input is not None:
+                temp_input.unlink(missing_ok=True)
+            temp_input = job_temp_input
+            source_path = job_temp_input
 
         try:
             # Run yml2dot first and fully collect stdout/stderr so we can
@@ -90,7 +123,8 @@ def build_dot_scheme(
             )
 
             if yml2dot_result.returncode != 0:
-                stderr_text = yml2dot_result.stderr.decode(errors="replace").strip()
+                stderr_text = yml2dot_result.stderr.decode(
+                    errors="replace").strip()
                 logger.error(
                     f"yml2dot failed for {f} with code {yml2dot_result.returncode}"
                 )
@@ -111,7 +145,8 @@ def build_dot_scheme(
             logger.info(f"{f} -> {output_file} generated")
             last_output_file = output_file
         except subprocess.TimeoutExpired:
-            logger.error(f"diagram generation timed out after {timeout}s on file: {f}")
+            logger.error(
+                f"diagram generation timed out after {timeout}s on file: {f}")
             return None
         except subprocess.CalledProcessError as e:
             log_exception_short(

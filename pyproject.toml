@@ -6,7 +6,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "coverage", "ruff", "black", "mypy", "bandit", "safety", "attrs", "python-dotenv", "pip-tools"]
+dev = ["pytest", "pytest-mock", "coverage", "ruff", "black", "mypy", "bandit", "safety", "attrs", "python-dotenv", "pip-tools"]
 
 [tool.ruff.lint]
 select = ["TID252"]  # Forbids relative imports

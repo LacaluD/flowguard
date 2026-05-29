@@ -215,6 +215,7 @@ def _build_dot(
         '  node [shape=box style="rounded,filled" fillcolor="#fafafa" fontname="Fira Mono" fontsize=10 penwidth=2]',
         "  edge [arrowhead=none penwidth=2]",
     ]
+    declared_nodes: set[str] = set()
 
     def node_id(key: str) -> str:
         """Build a stable DOT node identifier from a key path."""
@@ -239,6 +240,7 @@ def _build_dot(
         label_text = _escape_label(full_key.split(".")[-1])
 
         lines.append(f'  {nid} [label="{label_text}" fillcolor="{color}"]')
+        declared_nodes.add(nid)
 
         if parent_key is not None:
             lines.append(f"  {node_id(parent_key)} -> {nid}")
@@ -275,17 +277,35 @@ def _build_dot(
 
     # Add removed keys that are present only in the old file.
     for key in sorted(removed):
+        # Убедиться что все предки объявлены
+        parts = key.split(".")
+        for i in range(1, len(parts)):
+            ancestor_key = ".".join(parts[:i])
+            ancestor_nid = node_id(ancestor_key)
+            if ancestor_nid not in declared_nodes:
+                ancestor_label = _escape_label(parts[i - 1])
+                lines.append(
+                    f'  {ancestor_nid} [label="{ancestor_label}" fillcolor="{DIFF_COLORS["removed"]}"]'
+                )
+                declared_nodes.add(ancestor_nid)
+                parent_of_ancestor = ".".join(parts[:i - 1])
+                if parent_of_ancestor and node_id(parent_of_ancestor) in declared_nodes:
+                    edge = f"  {node_id(parent_of_ancestor)} -> {ancestor_nid}"
+                    if edge not in lines:
+                        lines.append(edge)
+
         nid = node_id(key)
         val_label = _escape_label(fst_flat[key])
         key_label = _escape_label(key.split(".")[-1])
         lines.append(
             f'  {nid} [label="{key_label}" fillcolor="{DIFF_COLORS["removed"]}"]'
         )
-
+        declared_nodes.add(nid)
         parent = ".".join(key.split(".")[:-1])
-        if parent:
-            lines.append(f"  {node_id(parent)} -> {nid}")
-
+        if parent and node_id(parent) in declared_nodes:
+            edge = f"  {node_id(parent)} -> {nid}"
+            if edge not in lines:
+                lines.append(edge)
         val_nid = node_id(f"{key}.__val__")
         lines.append(
             f'  {val_nid} [label="{val_label}" fillcolor="{DIFF_COLORS["removed"]}"]'

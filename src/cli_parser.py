@@ -5,7 +5,7 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
-from src.constants import OPTIONAL_CHECKS, EXTENDED_CHECKS, PROJECT_DESCRIPTION
+from src.constants import OPTIONAL_CHECKS, EXTENDED_CHECKS, PROJECT_DESCRIPTION, YAML_ONLY_CHECKS
 from version import __build__, __commit__, __version__
 
 
@@ -101,7 +101,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def show_list_checks() -> int:
     print("Required checks:")
-    for expr in EXTENDED_CHECKS:
+    for expr in EXTENDED_CHECKS + YAML_ONLY_CHECKS:
         print(f"  {expr}")
     print("\nOptional checks (disable with --no-optional-checks):")
     for expr in OPTIONAL_CHECKS:

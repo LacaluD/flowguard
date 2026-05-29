@@ -15,8 +15,14 @@ from src.constants import (
     EXTENDED_CHECKS,
     DEPRECATED_ACTIONS,
     OPTIONAL_CHECKS,
+    YAML_ONLY_CHECKS
 )
-from src.utils import _collect_yaml_files, check_for_empty_file, count_timeout
+from src.utils import (
+    _collect_yaml_files,
+    check_for_empty_file,
+    count_timeout,
+    _load_config_data,
+)
 from src.dot_schemas import build_dot_scheme
 from src.logger import log_exception_short
 import subprocess
@@ -24,6 +30,17 @@ from pathlib import Path
 import yaml
 
 from loguru import logger
+
+
+def _materialize_yaml_for_validation(cfg_file: Path) -> Path:
+    """Create temporary YAML equivalent for non-YAML config files."""
+    loaded = _load_config_data(cfg_file)
+    temp_file = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yml", encoding="utf-8", delete=False
+    )
+    with temp_file as handle:
+        yaml.safe_dump(loaded, handle, sort_keys=False, allow_unicode=True)
+    return Path(temp_file.name)
 
 
 def _normalize_action_ref(ref: str) -> tuple[str, str] | None:
@@ -67,7 +84,8 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
             continue
 
         if parsed_deprecated in found_refs:
-            logger.warning(f"{file_path} uses deprecated action '{deprecated}'")
+            logger.warning(
+                f"{file_path} uses deprecated action '{deprecated}'")
             issues += 1
 
     return issues
@@ -98,7 +116,8 @@ def run_yq(
         if expression != ".":
             if output in ("", "null", "false"):
                 if optional:
-                    logger.warning(f"{fpath}: {description} skipped (not present)")
+                    logger.warning(
+                        f"{fpath}: {description} skipped (not present)")
                     return 0
                 logger.error(f"{fpath}: {description} missing")
                 return 1
@@ -163,19 +182,19 @@ def validate_config(
     excluded_paths: list[Path],
     run_optional: bool = False,
 ) -> TypeError | int:
-    """Validate YAML files and return validated files, or None on validation failure."""
+    """Validate config files and return 0 on success, 1 on any failure."""
     if not isinstance(yml_path, Path):
         raise TypeError("yml_directory is not proper Path object")
     total_errors = 0
 
-    yaml_files = _collect_yaml_files(yml_path, excluded_paths)
-    logger.info(f"Discovered YAML files: {yaml_files}\n\n")
+    config_files = _collect_yaml_files(yml_path, excluded_paths)
+    logger.info(f"Discovered config files: {config_files}\n\n")
 
-    if not yaml_files:
-        logger.warning(f"No YAML files found in '{yml_path}'")
+    if not config_files:
+        logger.warning(f"No config files found in '{yml_path}'")
         return 0
 
-    for file_path in yaml_files:
+    for file_path in config_files:
         errors_before = total_errors
         logger.info(f"{'-' * 60}")
         logger.info(f"Checking: {file_path}")
@@ -191,24 +210,47 @@ def validate_config(
             total_errors += 1
             continue
 
-        total_errors += run_yq(
-            fpath=file_path,
-            expression=".",
-            description="base syntax check",
-            yq_exec=yq_exec,
-        )
+        temp_yaml_for_validation: Path | None = None
+        validation_target = file_path
 
-        total_errors += run_yq_in_threadpool(
-            fpath=file_path, yq_exec=yq_exec, run_optional=run_optional
-        )
+        try:
+            if file_path.suffix.lower() in (".json", ".toml"):
+                temp_yaml_for_validation = _materialize_yaml_for_validation(
+                    file_path)
+                validation_target = temp_yaml_for_validation
+
+            total_errors += run_yq(
+                fpath=validation_target,
+                expression=".",
+                description="base syntax check",
+                yq_exec=yq_exec,
+            )
+
+            total_errors += run_yq_in_threadpool(
+                fpath=validation_target, yq_exec=yq_exec, fending=yml_path.suffix, run_optional=run_optional
+            )
+        except Exception as e:
+            log_exception_short(
+                logger,
+                e,
+                prefix=f"Cannot prepare config {file_path} for validation",
+                level="error",
+                limit=1,
+            )
+            total_errors += 1
+        finally:
+            if temp_yaml_for_validation is not None:
+                temp_yaml_for_validation.unlink(missing_ok=True)
 
         total_errors += check_for_deprecated_keys(file_path, content)
 
-        total_errors += check_indentation(file_path)
+        if file_path.suffix.lower() in (".yml", ".yaml"):
+            total_errors += check_indentation(file_path)
         cfg_error_qty = total_errors - errors_before
         logger.info(f"{'=' * 60}")
         if cfg_error_qty > 0:
-            logger.warning(f"Errors found in {file_path} - {cfg_error_qty}\n\n")
+            logger.warning(
+                f"Errors found in {file_path} - {cfg_error_qty}\n\n")
         else:
             logger.success(f"Did not found errors in {file_path}\n\n")
 
@@ -217,15 +259,20 @@ def validate_config(
         logger.error(f"Total errors found: {total_errors}")
         return 1
 
-    logger.info("YAML files are valid")
+    logger.info("Config files are valid")
     return 0
 
 
-def run_yq_in_threadpool(fpath: Path, yq_exec: Path, run_optional: bool = True) -> int:
+def run_yq_in_threadpool(fpath: Path, yq_exec: Path, fending: str, run_optional: bool = True) -> int:
     """Run a yq expression against a config file in ThreadPoolExecutor with automaticly counted threads.
     Return 0 on success, 1 on error."""
     total_errors = 0
     max_workers = max(1, (os.cpu_count() or 4) // 4)
+
+    checks = EXTENDED_CHECKS.copy()
+    if fending in (".yml", ".yaml"):
+        checks = EXTENDED_CHECKS.copy() + YAML_ONLY_CHECKS
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
@@ -236,7 +283,7 @@ def run_yq_in_threadpool(fpath: Path, yq_exec: Path, run_optional: bool = True) 
                 yq_exec=yq_exec,
                 optional=False,
             ): expr
-            for expr in EXTENDED_CHECKS
+            for expr in checks
         }
         if run_optional:
             futures |= {
@@ -264,7 +311,7 @@ def _build_job_scoped_validation_yaml(cfg_file: Path, job_name: str) -> Path | N
     (``name`` and ``on``), and narrows ``jobs`` to a single entry.
     """
     try:
-        loaded = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
+        loaded = _load_config_data(cfg_file)
     except Exception as exc:
         logger.error(f"Failed to parse {cfg_file} for --job validation: {exc}")
         return None
@@ -336,7 +383,8 @@ def regular_validation(
 
     cfg_file = cfg_files[0]
 
-    logger.info(f"Running validate config task with optional checks: {run_optional}")
+    logger.info(
+        f"Running validate config task with optional checks: {run_optional}")
     yaml_files = _collect_yaml_files(cfg_file, excluded_paths)
     temp_job_files: list[Path] = []
 
@@ -384,7 +432,8 @@ def regular_validation(
             temp_job_file.unlink(missing_ok=True)
 
     if output_file is not None:
-        logger.info(f"Successfully built dot schema, check results: {output_file}")
+        logger.info(
+            f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         logger.info(f"{'-' * 60}")
         return 0
