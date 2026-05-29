@@ -296,7 +296,7 @@ jobs:
           fi
 
       - name: Send success telegram message
-        if: success()
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         uses: cbrgm/telegram-github-action@v1.4.0
         with:
           token: ${{ secrets.TG_BOT_TOKEN }}
@@ -312,7 +312,7 @@ jobs:
             ✅ Security checks have completed successfully!
 
       - name: Send failure telegram message
-        if: failure()
+        if: ${{ contains(needs.*.result, 'failure') }}
         uses: cbrgm/telegram-github-action@v1.4.0
         with:
           token: ${{ secrets.TG_BOT_TOKEN }}

@@ -78,12 +78,13 @@ def run_and_capture(yml_file: Path) -> str:
 
 
 def _normalize_dynamic_startup_line(text: str) -> str:
-    """Normalize dynamic build/commit values to keep golden output stable."""
-    return re.sub(
-        r"\(build [^,]+, commit [^)]+\)",
-        "(build __dev__, commit __dev__)",
+    """Normalize dynamic startup values to keep golden output stable."""
+    normalized = re.sub(
+        r"INFO: Starting flowguard [^\s]+ \(build [^,]+, commit [^)]+\)",
+        "INFO: Starting flowguard __version__ (build __dev__, commit __dev__)",
         text,
     )
+    return normalized
 
 
 def _assert_startup_line_matches_version(actual_output: str) -> None:
