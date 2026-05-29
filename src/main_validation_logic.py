@@ -15,7 +15,7 @@ from src.constants import (
     EXTENDED_CHECKS,
     DEPRECATED_ACTIONS,
     OPTIONAL_CHECKS,
-    YAML_ONLY_CHECKS
+    YAML_ONLY_CHECKS,
 )
 from src.utils import (
     _collect_yaml_files,
@@ -84,8 +84,7 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
             continue
 
         if parsed_deprecated in found_refs:
-            logger.warning(
-                f"{file_path} uses deprecated action '{deprecated}'")
+            logger.warning(f"{file_path} uses deprecated action '{deprecated}'")
             issues += 1
 
     return issues
@@ -116,8 +115,7 @@ def run_yq(
         if expression != ".":
             if output in ("", "null", "false"):
                 if optional:
-                    logger.warning(
-                        f"{fpath}: {description} skipped (not present)")
+                    logger.warning(f"{fpath}: {description} skipped (not present)")
                     return 0
                 logger.error(f"{fpath}: {description} missing")
                 return 1
@@ -215,8 +213,7 @@ def validate_config(
 
         try:
             if file_path.suffix.lower() in (".json", ".toml"):
-                temp_yaml_for_validation = _materialize_yaml_for_validation(
-                    file_path)
+                temp_yaml_for_validation = _materialize_yaml_for_validation(file_path)
                 validation_target = temp_yaml_for_validation
 
             total_errors += run_yq(
@@ -227,7 +224,10 @@ def validate_config(
             )
 
             total_errors += run_yq_in_threadpool(
-                fpath=validation_target, yq_exec=yq_exec, fending=yml_path.suffix, run_optional=run_optional
+                fpath=validation_target,
+                yq_exec=yq_exec,
+                fending=yml_path.suffix,
+                run_optional=run_optional,
             )
         except Exception as e:
             log_exception_short(
@@ -249,8 +249,7 @@ def validate_config(
         cfg_error_qty = total_errors - errors_before
         logger.info(f"{'=' * 60}")
         if cfg_error_qty > 0:
-            logger.warning(
-                f"Errors found in {file_path} - {cfg_error_qty}\n\n")
+            logger.warning(f"Errors found in {file_path} - {cfg_error_qty}\n\n")
         else:
             logger.success(f"Did not found errors in {file_path}\n\n")
 
@@ -263,7 +262,9 @@ def validate_config(
     return 0
 
 
-def run_yq_in_threadpool(fpath: Path, yq_exec: Path, fending: str, run_optional: bool = True) -> int:
+def run_yq_in_threadpool(
+    fpath: Path, yq_exec: Path, fending: str, run_optional: bool = True
+) -> int:
     """Run a yq expression against a config file in ThreadPoolExecutor with automaticly counted threads.
     Return 0 on success, 1 on error."""
     total_errors = 0
@@ -383,8 +384,7 @@ def regular_validation(
 
     cfg_file = cfg_files[0]
 
-    logger.info(
-        f"Running validate config task with optional checks: {run_optional}")
+    logger.info(f"Running validate config task with optional checks: {run_optional}")
     yaml_files = _collect_yaml_files(cfg_file, excluded_paths)
     temp_job_files: list[Path] = []
 
@@ -432,8 +432,7 @@ def regular_validation(
             temp_job_file.unlink(missing_ok=True)
 
     if output_file is not None:
-        logger.info(
-            f"Successfully built dot schema, check results: {output_file}")
+        logger.info(f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         logger.info(f"{'-' * 60}")
         return 0

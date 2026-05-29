@@ -11,7 +11,6 @@ from typing import Any
 from collections.abc import Mapping
 import yaml
 
-
 SUPPORTED_CONFIG_EXTENSIONS = (".yml", ".yaml", ".json", ".toml")
 
 
@@ -136,8 +135,7 @@ def _extract_job_view(data: Any, job_name: str, file_path: Path) -> dict[str, An
         raise ValueError(f"{file_path}: top-level 'jobs' mapping is missing")
 
     if job_name not in jobs:
-        raise ValueError(
-            f"{file_path}: job '{job_name}' not found under 'jobs'")
+        raise ValueError(f"{file_path}: job '{job_name}' not found under 'jobs'")
 
     selected: dict[str, Any] = {"jobs": {job_name: jobs[job_name]}}
     if "name" in data:

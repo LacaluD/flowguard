@@ -5,7 +5,12 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
-from src.constants import OPTIONAL_CHECKS, EXTENDED_CHECKS, PROJECT_DESCRIPTION, YAML_ONLY_CHECKS
+from src.constants import (
+    OPTIONAL_CHECKS,
+    EXTENDED_CHECKS,
+    PROJECT_DESCRIPTION,
+    YAML_ONLY_CHECKS,
+)
 from version import __build__, __commit__, __version__
 
 

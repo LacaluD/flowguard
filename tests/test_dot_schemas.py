@@ -25,8 +25,7 @@ def test_build_dot_scheme_returns_none_when_yml2dot_fails_with_stderr(
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
     monkeypatch.setattr(
-        dot_schemas.logger, "error", lambda message: errors.append(
-            str(message))
+        dot_schemas.logger, "error", lambda message: errors.append(str(message))
     )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
@@ -107,8 +106,7 @@ def test_build_dot_scheme_logs_dot_stderr_when_dot_fails(
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
     monkeypatch.setattr(
-        dot_schemas.logger, "error", lambda message: errors.append(
-            str(message))
+        dot_schemas.logger, "error", lambda message: errors.append(str(message))
     )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
@@ -168,13 +166,11 @@ def test_build_dot_scheme_job_mode_returns_none_when_job_missing(
     )
 
     def fail_if_called(*_args, **_kwargs):
-        pytest.fail(
-            "subprocess.run must not be called when selected job is missing")
+        pytest.fail("subprocess.run must not be called when selected job is missing")
 
     monkeypatch.setattr(dot_schemas.subprocess, "run", fail_if_called)
 
-    result = dot_schemas.build_dot_scheme(
-        [yml_file], Path("yml2dot"), job_name="build")
+    result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"), job_name="build")
 
     assert result is None
 
@@ -185,7 +181,8 @@ def test_build_dot_scheme_supports_json_input_via_temp_yaml(
 ) -> None:
     json_file = tmp_path / "wf.json"
     json_file.write_text(
-        '{"name":"ci","jobs":{"build":{"runs-on":"ubuntu-latest"}}}', encoding="utf-8")
+        '{"name":"ci","jobs":{"build":{"runs-on":"ubuntu-latest"}}}', encoding="utf-8"
+    )
 
     calls: list[list[str]] = []
 

@@ -288,7 +288,7 @@ def _build_dot(
                     f'  {ancestor_nid} [label="{ancestor_label}" fillcolor="{DIFF_COLORS["removed"]}"]'
                 )
                 declared_nodes.add(ancestor_nid)
-                parent_of_ancestor = ".".join(parts[:i - 1])
+                parent_of_ancestor = ".".join(parts[: i - 1])
                 if parent_of_ancestor and node_id(parent_of_ancestor) in declared_nodes:
                     edge = f"  {node_id(parent_of_ancestor)} -> {ancestor_nid}"
                     if edge not in lines:

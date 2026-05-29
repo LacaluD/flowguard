@@ -28,8 +28,7 @@ def _build_selected_job_yaml(cfg_file: Path, job_name: str) -> Path | None:
     """
     try:
         loaded = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
-        payload = _extract_job_view(
-            loaded, job_name=job_name, file_path=cfg_file)
+        payload = _extract_job_view(loaded, job_name=job_name, file_path=cfg_file)
     except (yaml.YAMLError, ValueError) as exc:
         logger.error(str(exc))
         return None
@@ -79,8 +78,7 @@ def build_dot_scheme(
     for f in cfg_files:
         f = Path(f)
         output_file = (
-            f.with_name(
-                f"{f.stem}.{_safe_job_filename(job_name)}.{output_format}")
+            f.with_name(f"{f.stem}.{_safe_job_filename(job_name)}.{output_format}")
             if job_name
             else f.with_suffix(f".{output_format}")
         )
@@ -123,8 +121,7 @@ def build_dot_scheme(
             )
 
             if yml2dot_result.returncode != 0:
-                stderr_text = yml2dot_result.stderr.decode(
-                    errors="replace").strip()
+                stderr_text = yml2dot_result.stderr.decode(errors="replace").strip()
                 logger.error(
                     f"yml2dot failed for {f} with code {yml2dot_result.returncode}"
                 )
@@ -145,8 +142,7 @@ def build_dot_scheme(
             logger.info(f"{f} -> {output_file} generated")
             last_output_file = output_file
         except subprocess.TimeoutExpired:
-            logger.error(
-                f"diagram generation timed out after {timeout}s on file: {f}")
+            logger.error(f"diagram generation timed out after {timeout}s on file: {f}")
             return None
         except subprocess.CalledProcessError as e:
             log_exception_short(
