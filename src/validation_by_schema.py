@@ -10,6 +10,7 @@ from loguru import logger
 import json
 from typing import Any
 from pathlib import Path
+from collections.abc import Sequence
 
 import yaml
 import jsonschema
@@ -22,7 +23,8 @@ def _load_schema(schema_file: Path) -> dict[str, Any]:
     """Load schema from JSON/YAML file and return mapping object."""
     schema_text = schema_file.read_text(encoding="utf-8")
     is_yaml_schema = schema_file.suffix.lower() in (".yml", ".yaml")
-    loaded = yaml.safe_load(schema_text) if is_yaml_schema else json.loads(schema_text)
+    loaded = yaml.safe_load(
+        schema_text) if is_yaml_schema else json.loads(schema_text)
 
     if not isinstance(loaded, dict):
         raise jsonschema.SchemaError("Schema root must be a JSON object")
@@ -38,7 +40,8 @@ def _validate_single_yaml(yaml_file: Path, schema: dict[str, Any]) -> int:
         logger.info(f"{yaml_file} is valid against schema")
         return 0
     except jsonschema.ValidationError as exc:
-        logger.error(f"{yaml_file}: {exc.message} at {list(exc.absolute_path)}")
+        logger.error(
+            f"{yaml_file}: {exc.message} at {list(exc.absolute_path)}")
         return 1
     except yaml.YAMLError as exc:
         logger.error(f"YAML parse error in {yaml_file}: {exc}")
@@ -62,7 +65,8 @@ def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
     try:
         yaml_files = _collect_yaml_files(yml_path)
         if not yaml_files:
-            logger.error(f"No YAML files found for schema validation in '{yml_path}'")
+            logger.error(
+                f"No YAML files found for schema validation in '{yml_path}'")
             return 1
 
         if not schema_file.exists():
@@ -100,7 +104,11 @@ def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
 
 
 def validate_custom_pipeline(
-    cfg_files: Path, val_schema: Path, yml2dot_exe: Path
+    cfg_files: Sequence[Path],
+    val_schema: Path,
+    yml2dot_exe: Path,
+    job_name: str | None = None,
+    output_format: str = "svg"
 ) -> int:
     """Run schema-based validation pipeline and then build diagrams.
 
@@ -113,17 +121,31 @@ def validate_custom_pipeline(
         0 when schema validation and diagram generation succeed.
         1 when schema validation fails or diagram generation fails.
     """
-    res = validate_against_schema(yml_path=cfg_files, schema_file=val_schema)
+    if len(cfg_files) > 1:
+        logger.error(
+            f"custom validation requires exactly one config file, got {len(cfg_files)}")
+        return 1
+
+    if not cfg_files:
+        logger.error("custom validation requires at least one config file")
+        return 1
+
+    cfg_file = cfg_files[0]
+
+    res = validate_against_schema(yml_path=cfg_file, schema_file=val_schema)
     if res != 0:
         logger.error("Validation against schema failed!")
         return 1
 
     output_file = build_dot_scheme(
-        cfg_files=_collect_yaml_files(cfg_files),
+        cfg_files=_collect_yaml_files(cfg_file),
         yml2dot_exec=yml2dot_exe,
+        job_name=job_name,
+        output_format=output_format,
     )
     if output_file is not None:
-        logger.info(f"Successfully built dot schema, check results: {output_file}")
+        logger.info(
+            f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         return 0
 

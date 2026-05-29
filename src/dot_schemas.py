@@ -5,15 +5,46 @@ into Graphviz `dot`. It is intentionally small and focused: one public helper
 processes a sequence of YAML files and reports generation status through logs.
 """
 
-from src.logger import log_exception_short
-from src.utils import count_timeout
 from typing import Sequence
 from pathlib import Path
 import subprocess
+import tempfile
+import re
+
+import yaml
 from loguru import logger
 
+from src.logger import log_exception_short
+from src.utils import count_timeout, _extract_job_view
 
-def build_dot_scheme(cfg_files: Sequence[Path], yml2dot_exec: Path) -> Path | None:
+
+def _safe_job_filename(job_name: str) -> str:
+    return re.sub(r"[^\w-]", "_", job_name)
+
+
+def _build_selected_job_yaml(cfg_file: Path, job_name: str) -> Path | None:
+    """Create temporary YAML containing only one selected job.
+
+    Returns path to a temporary file. Caller is responsible for cleanup.
+    """
+    try:
+        loaded = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
+        payload = _extract_job_view(
+            loaded, job_name=job_name, file_path=cfg_file)
+    except (yaml.YAMLError, ValueError) as exc:
+        logger.error(str(exc))
+        return None
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yml", encoding="utf-8", delete=False
+    )
+    with tmp as handle:
+        yaml.safe_dump(payload, handle, sort_keys=False, allow_unicode=True)
+    return Path(tmp.name)
+
+
+def build_dot_scheme(
+    cfg_files: Sequence[Path], yml2dot_exec: Path, job_name: str | None = None, output_format: str = "svg"
+) -> Path | None:
     """Build PNG diagrams for YAML files using `yml2dot` + `dot`.
 
     Note: timeout: is being counted automaticly
@@ -30,13 +61,28 @@ def build_dot_scheme(cfg_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
 
     for f in cfg_files:
         f = Path(f)
-        output_file = f.with_suffix(".png")
+        output_file = (
+            f.with_name(
+                f"{f.stem}.{_safe_job_filename(job_name)}.{output_format}")
+            if job_name
+            else f.with_suffix(f".{output_format}")
+        )
         timeout = count_timeout(fpath=f, tool="yml2dot")
+        source_path = f
+        temp_input: Path | None = None
+
+        if job_name:
+            temp_input = _build_selected_job_yaml(
+                cfg_file=f, job_name=job_name)
+            if temp_input is None:
+                return None
+            source_path = temp_input
+
         try:
             # Run yml2dot first and fully collect stdout/stderr so we can
             # reliably validate its exit code and report errors.
             yml2dot_result = subprocess.run(
-                [str(yml2dot_exec), str(f)],
+                [str(yml2dot_exec), str(source_path)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=False,
@@ -44,17 +90,17 @@ def build_dot_scheme(cfg_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
             )
 
             if yml2dot_result.returncode != 0:
-                stderr_text = yml2dot_result.stderr.decode(errors="replace").strip()
+                stderr_text = yml2dot_result.stderr.decode(
+                    errors="replace").strip()
                 logger.error(
-                    f"yml2dot failed for {f} with code {yml2dot_result.returncode}"
-                )
+                    f"yml2dot failed for {f} with code {yml2dot_result.returncode}")
                 if stderr_text:
                     logger.error(f"yml2dot stderr: {stderr_text}")
                 return None
 
             with open(output_file, "wb") as out:
                 subprocess.run(
-                    ["dot", "-Tpng"],
+                    ["dot", f"-T{output_format}"],
                     input=yml2dot_result.stdout,
                     stdout=out,
                     stderr=subprocess.PIPE,
@@ -65,7 +111,8 @@ def build_dot_scheme(cfg_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
             logger.info(f"{f} -> {output_file} generated")
             last_output_file = output_file
         except subprocess.TimeoutExpired:
-            logger.error(f"diagram generation timed out after {timeout}s on file: {f}")
+            logger.error(
+                f"diagram generation timed out after {timeout}s on file: {f}")
             return None
         except subprocess.CalledProcessError as e:
             log_exception_short(
@@ -82,5 +129,8 @@ def build_dot_scheme(cfg_files: Sequence[Path], yml2dot_exec: Path) -> Path | No
                     stderr_text = str(e.stderr).strip()
                 logger.error(f"dot stderr: {stderr_text}")
             return None
+        finally:
+            if temp_input is not None:
+                temp_input.unlink(missing_ok=True)
 
     return last_output_file

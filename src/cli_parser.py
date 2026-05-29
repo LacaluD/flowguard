@@ -70,8 +70,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="build svg image of difference between 2 configs",
     )
     parser.add_argument(
-        "--output-format",
-        "-o",
+        "--job",
+        type=str,
+        help="render graph only for selected job under top-level 'jobs'",
+    )
+    parser.add_argument(
+        "--output-format", "-o",
         choices=("svg", "png", "dot"),
         default="svg",
         help="output format for difference graph",

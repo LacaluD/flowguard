@@ -4,6 +4,8 @@ from src.logger import log_exception_short
 from pathlib import Path
 import sys
 from loguru import logger
+from typing import Any
+from collections.abc import Mapping
 
 
 def _collect_yaml_files(
@@ -79,3 +81,35 @@ def count_timeout(fpath: Path, tool: str) -> int | None:
             return 40
 
     return None
+
+
+
+def _extract_job_view(data: Any, job_name: str, file_path: Path) -> dict[str, Any]:
+    """Return a minimal config that contains only one selected job.
+
+    Args:
+        data: Parsed config object.
+        job_name: Job key to extract from top-level ``jobs`` mapping.
+        file_path: Source file path, used in error messages.
+
+    Returns:
+        A mapping with only the selected job.
+
+    Raises:
+        ValueError: If config structure is invalid or job was not found.
+    """
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{file_path}: expected mapping root to select --job")
+
+    jobs = data.get("jobs")
+    if not isinstance(jobs, Mapping):
+        raise ValueError(f"{file_path}: top-level 'jobs' mapping is missing")
+
+    if job_name not in jobs:
+        raise ValueError(
+            f"{file_path}: job '{job_name}' not found under 'jobs'")
+
+    selected: dict[str, Any] = {"jobs": {job_name: jobs[job_name]}}
+    if "name" in data:
+        selected["name"] = data["name"]
+    return selected

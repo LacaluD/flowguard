@@ -25,7 +25,8 @@ def test_build_dot_scheme_returns_none_when_yml2dot_fails_with_stderr(
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
     monkeypatch.setattr(
-        dot_schemas.logger, "error", lambda message: errors.append(str(message))
+        dot_schemas.logger, "error", lambda message: errors.append(
+            str(message))
     )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
@@ -106,10 +107,72 @@ def test_build_dot_scheme_logs_dot_stderr_when_dot_fails(
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
     monkeypatch.setattr(
-        dot_schemas.logger, "error", lambda message: errors.append(str(message))
+        dot_schemas.logger, "error", lambda message: errors.append(
+            str(message))
     )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
 
     assert result is None
     assert any("dot stderr: dot failed as text" in msg for msg in errors)
+
+
+def test_build_dot_scheme_job_mode_uses_extracted_job_and_named_output(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    yml_file = tmp_path / "wf.yml"
+    yml_file.write_text(
+        "name: CI\njobs:\n  build:\n    runs-on: ubuntu-latest\n",
+        encoding="utf-8",
+    )
+
+    seen_cmds: list[list[str]] = []
+
+    def fake_run(cmd, *args, **kwargs):
+        seen_cmds.append([str(part) for part in cmd])
+        if cmd[0] == "yml2dot":
+            source = Path(cmd[1]).read_text(encoding="utf-8")
+            assert "jobs:" in source
+            assert "build:" in source
+            return subprocess.CompletedProcess(
+                args=cmd,
+                returncode=0,
+                stdout=b"digraph G {}",
+                stderr=b"",
+            )
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=0,
+            stdout=b"",
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
+
+    result = dot_schemas.build_dot_scheme(
+        [yml_file], Path("yml2dot"), job_name="build", output_format="png"
+    )
+
+    assert result == yml_file.with_name("wf.build.png")
+    assert seen_cmds[0][0] == "yml2dot"
+
+
+def test_build_dot_scheme_job_mode_returns_none_when_job_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    yml_file = tmp_path / "wf.yml"
+    yml_file.write_text(
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+
+    def fail_if_called(*_args, **_kwargs):
+        pytest.fail(
+            "subprocess.run must not be called when selected job is missing")
+
+    monkeypatch.setattr(dot_schemas.subprocess, "run", fail_if_called)
+
+    result = dot_schemas.build_dot_scheme(
+        [yml_file], Path("yml2dot"), job_name="build")
+
+    assert result is None

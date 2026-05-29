@@ -3,6 +3,7 @@
 import shutil
 from pathlib import Path
 import sys
+import os
 from typing import Sequence
 
 
@@ -30,7 +31,7 @@ def find_executable(
 
     for d in default_dirs:
         candidate = d / filename
-        if candidate.exists():
+        if candidate.is_file() and os.access(candidate, os.X_OK):
             return candidate
 
     return None

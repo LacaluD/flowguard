@@ -1,6 +1,6 @@
 # flowguard
 
-[![CI](https://img.shields.io/github/actions/workflow/status/LacaluD/YML-Validator-Scheme-converter/security_audit.yml?branch=main&label=CI)](https://github.com/LacaluD/YML-Validator-Scheme-converter/actions/workflows/security_audit.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/LacaluD/YML-Validator-Scheme-converter/security_audit.yml?branch=main&label=CI)](https://github.com/LacaluD/flowguard/blob/main/.github/workflows/main.yml)
 [![Coverage](https://codecov.io/gh/LacaluD/YML-Validator-Scheme-converter/graph/badge.svg?branch=main)](https://codecov.io/gh/LacaluD/YML-Validator-Scheme-converter)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -47,6 +47,10 @@ Key operational behavior:
 ## Demo
 
 ![flowguard demo](docs/assets/demo.gif)
+
+## Difference demo
+
+![flowguard difference demo](docs/assets/demo_difference.gif)
 
 ## Core capabilities
 
@@ -178,6 +182,15 @@ Difference visualization:
 
 ```bash
 python main.py --files demo/demo_small.yml demo/demo_small_v2.yml --difference --output-format svg
+
+# render difference only for one job key
+python main.py --files .github/workflows/ci_old.yml .github/workflows/ci_new.yml --difference --job build --output-format svg
+```
+
+Per-job visualization for regular pipeline:
+
+```bash
+python main.py --files .github/workflows/ci.yml --job build
 ```
 
 Quiet mode:
@@ -229,6 +242,10 @@ python main.py --files demo/demo_small_v2.yml
 
 See [docs/schema_guide.md](docs/schema_guide.md) for writing and applying custom schemas.
 
+## For contributors
+
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) developer documentation
+
 ## Testing
 
 Run all tests:
@@ -239,7 +256,7 @@ python -m pytest -q -c configs/pytest.ini
 
 Current suite size:
 
-The repository currently keeps the full suite at 170 tests.
+The repository currently keeps the full suite at 191 tests.
 
 Run with coverage:
 
@@ -279,8 +296,12 @@ python -m pytest -q tests/test_golden.py -c configs/pytest.ini --update-golden
 ## Project layout
 
 ```text
-.
+flowguard
 ├─ main.py
+├─ requirements.txt
+├─ pyproject.toml
+├─ version.py
+├─ LICENSE
 ├─ src/
 │  ├─ cli_parser.py
 │  ├─ constants.py
@@ -293,12 +314,16 @@ python -m pytest -q tests/test_golden.py -c configs/pytest.ini --update-golden
 ├─ tests/
 ├─ configs/
 ├─ docs/
+├─ demo/
+├─ .github/workflows/
 └─ schema_examples/
 ```
 
 ## Status
 
 Implemented:
+
+- Added exclude-dir argument
 - CI-friendly output and exit codes
 - JSON Schema validation
 - exact-version deprecated action detection
@@ -310,10 +335,10 @@ Implemented:
 
 Planned:
 
-- Better graph features for specific jobs/sections
+- In Progress Better graph features for specific jobs/sections
 - Relationship-focused visualization
 - Additional output/reporting improvements
 
-- visualize per-job graphs and inter-job dependencies,
+- In Progress visualize per-job graphs and inter-job dependencies,
 - render YAML anchors, references, and nested relationships,
-- supports YAML and JSON as input formats.
+- supports YAML, JSON, TOML as input formats.

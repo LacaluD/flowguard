@@ -52,3 +52,33 @@ def test_count_timeout_unknown_tool_returns_none(tmp_path: Path) -> None:
     f = tmp_path / "x.yml"
     f.write_text("name: ci\n", encoding="utf-8")
     assert utils.count_timeout(f, "unknown") is None
+
+
+def test_extract_job_view_success_returns_selected_job_and_name() -> None:
+    data = {
+        "name": "CI",
+        "jobs": {"build": {"runs-on": "ubuntu-latest"}},
+    }
+
+    result = utils._extract_job_view(
+        data, job_name="build", file_path=Path("wf.yml")
+    )
+
+    assert result == {
+        "jobs": {"build": {"runs-on": "ubuntu-latest"}},
+        "name": "CI",
+    }
+
+
+def test_extract_job_view_raises_for_non_mapping_root() -> None:
+    with pytest.raises(ValueError, match="expected mapping root"):
+        utils._extract_job_view(
+            [1, 2, 3], job_name="build", file_path=Path("wf.yml")
+        )
+
+
+def test_extract_job_view_raises_when_jobs_mapping_missing() -> None:
+    with pytest.raises(ValueError, match="top-level 'jobs' mapping is missing"):
+        utils._extract_job_view(
+            {"name": "CI"}, job_name="build", file_path=Path("wf.yml")
+        )

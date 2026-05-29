@@ -10,7 +10,8 @@ from pathlib import Path
 
 import pytest
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "src" / "diff_visualizer.py"
+MODULE_PATH = Path(__file__).resolve(
+).parents[1] / "src" / "diff_visualizer.py"
 _SPEC = importlib.util.spec_from_file_location("diff_visualizer", MODULE_PATH)
 assert _SPEC and _SPEC.loader
 
@@ -206,7 +207,8 @@ def test_get_cfg_difference_dot_writes_dot_file_without_graphviz(
     new_file.write_text("a: 2\n", encoding="utf-8")
 
     def fail_if_called(*args: object, **kwargs: object) -> None:
-        raise AssertionError("subprocess.run should not be called for dot output")
+        raise AssertionError(
+            "subprocess.run should not be called for dot output")
 
     monkeypatch.setattr(mod.subprocess, "run", fail_if_called)
 
@@ -289,7 +291,8 @@ def test_get_cfg_difference_with_toml_inputs_success(
     new_file.write_text("a = 2\n", encoding="utf-8")
 
     monkeypatch.setattr(
-        mod, "_parse_file", lambda path: {"a": 1} if path == old_file else {"a": 2}
+        mod, "_parse_file", lambda path: {
+            "a": 1} if path == old_file else {"a": 2}
     )
 
     def fake_run(
@@ -320,7 +323,8 @@ def test_visualize_cfgs_returns_zero_without_difference_flag() -> None:
 
 
 def test_visualize_cfgs_fails_when_file_count_not_equal_two() -> None:
-    rc_one = mod.visualize_cfgs([Path("a.yml")], dot_exec=Path("dot"), difference=True)
+    rc_one = mod.visualize_cfgs(
+        [Path("a.yml")], dot_exec=Path("dot"), difference=True)
     rc_three = mod.visualize_cfgs(
         [Path("a.yml"), Path("b.yml"), Path("c.yml")],
         dot_exec=Path("dot"),
@@ -351,11 +355,13 @@ def test_visualize_cfgs_accepts_toml_and_mixed_case_extensions(
         sec_file: Path,
         dot_exec: Path,
         output_format: str = "svg",
+        job_name: str | None = None,
     ) -> int:
         captured["fst"] = fst_file
         captured["sec"] = sec_file
         captured["dot_exec"] = dot_exec
         captured["fmt"] = output_format
+        captured["job_name"] = job_name
         return 0
 
     monkeypatch.setattr(mod, "get_cfg_difference", fake_get_cfg_difference)
@@ -373,6 +379,140 @@ def test_visualize_cfgs_accepts_toml_and_mixed_case_extensions(
         "sec": Path("new.yaml"),
         "dot_exec": Path("dot"),
         "fmt": "png",
+        "job_name": None,
+    }
+
+
+def test_extract_job_view_returns_selected_job_and_name() -> None:
+    data = {
+        "name": "CI",
+        "jobs": {
+            "build": {"runs-on": "ubuntu-latest"},
+            "test": {"runs-on": "ubuntu-latest"},
+        },
+        "other": {"x": 1},
+    }
+
+    selected = mod._extract_job_view(
+        data, job_name="build", file_path=Path("wf.yml"))
+
+    assert selected == {
+        "jobs": {"build": {"runs-on": "ubuntu-latest"}},
+        "name": "CI",
+    }
+
+
+def test_extract_job_view_raises_when_job_missing() -> None:
+    with pytest.raises(ValueError, match="job 'deploy' not found"):
+        mod._extract_job_view(
+            {"jobs": {"build": {}}}, job_name="deploy", file_path=Path("wf.yml")
+        )
+
+
+def test_get_cfg_difference_returns_one_when_job_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_file = tmp_path / "old.yml"
+    new_file = tmp_path / "new.yml"
+    old_file.write_text(
+        "jobs:\n  build:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+    new_file.write_text(
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, *args, **kwargs):
+        calls.append([str(part) for part in cmd])
+        if str(cmd[0]) == "dot":
+            output_path = Path(cmd[cmd.index("-o") + 1])
+            output_path.write_text("<svg/>", encoding="utf-8")
+            return subprocess.CompletedProcess(
+                args=cmd, returncode=0, stdout="", stderr=""
+            )
+        return subprocess.CompletedProcess(
+            args=cmd, returncode=0, stdout=b"digraph G {}", stderr=b""
+        )
+
+    monkeypatch.setattr(mod.subprocess, "run", fake_run)
+
+    rc = mod.get_cfg_difference(
+        old_file,
+        new_file,
+        dot_exec=Path("dot"),
+        output_format="svg",
+        job_name="build",
+    )
+
+    assert rc == 0
+    assert calls
+    assert new_file.with_name("new.job-build.diff.svg").exists()
+
+
+def test_get_cfg_difference_returns_one_when_job_missing_in_first_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_file = tmp_path / "old.yml"
+    new_file = tmp_path / "new.yml"
+    old_file.write_text(
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+    new_file.write_text(
+        "jobs:\n  build:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+
+    def fail_if_called(*args: object, **kwargs: object) -> None:
+        raise AssertionError(
+            "subprocess.run must not run when first job is missing")
+
+    monkeypatch.setattr(mod.subprocess, "run", fail_if_called)
+
+    rc = mod.get_cfg_difference(
+        old_file,
+        new_file,
+        dot_exec=Path("dot"),
+        output_format="svg",
+        job_name="build",
+    )
+
+    assert rc == 1
+
+
+def test_visualize_cfgs_passes_job_name_to_difference_builder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_get_cfg_difference(
+        fst_file: Path,
+        sec_file: Path,
+        dot_exec: Path,
+        output_format: str = "svg",
+        job_name: str | None = None,
+    ) -> int:
+        captured["fst"] = fst_file
+        captured["sec"] = sec_file
+        captured["dot_exec"] = dot_exec
+        captured["fmt"] = output_format
+        captured["job_name"] = job_name
+        return 0
+
+    monkeypatch.setattr(mod, "get_cfg_difference", fake_get_cfg_difference)
+
+    rc = mod.visualize_cfgs(
+        [Path("old.yml"), Path("new.yml")],
+        dot_exec=Path("dot"),
+        difference=True,
+        output_format="dot",
+        job_name="build",
+    )
+
+    assert rc == 0
+    assert captured == {
+        "fst": Path("old.yml"),
+        "sec": Path("new.yml"),
+        "dot_exec": Path("dot"),
+        "fmt": "dot",
+        "job_name": "build",
     }
 
 

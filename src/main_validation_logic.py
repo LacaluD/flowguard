@@ -7,6 +7,8 @@ Add this file to .gitignore if using locally.
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import re
+import tempfile
+from collections.abc import Sequence
 
 from src.constants import (
     INDENT_SIZE,
@@ -19,6 +21,7 @@ from src.dot_schemas import build_dot_scheme
 from src.logger import log_exception_short
 import subprocess
 from pathlib import Path
+import yaml
 
 from loguru import logger
 
@@ -64,7 +67,8 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
             continue
 
         if parsed_deprecated in found_refs:
-            logger.warning(f"{file_path} uses deprecated action '{deprecated}'")
+            logger.warning(
+                f"{file_path} uses deprecated action '{deprecated}'")
             issues += 1
 
     return issues
@@ -95,7 +99,8 @@ def run_yq(
         if expression != ".":
             if output in ("", "null", "false"):
                 if optional:
-                    logger.warning(f"{fpath}: {description} skipped (not present)")
+                    logger.warning(
+                        f"{fpath}: {description} skipped (not present)")
                     return 0
                 logger.error(f"{fpath}: {description} missing")
                 return 1
@@ -205,7 +210,8 @@ def validate_config(
         cfg_error_qty = total_errors - errors_before
         logger.info(f"{'=' * 60}")
         if cfg_error_qty > 0:
-            logger.warning(f"Errors found in {file_path} - {cfg_error_qty}\n\n")
+            logger.warning(
+                f"Errors found in {file_path} - {cfg_error_qty}\n\n")
         else:
             logger.success(f"Did not found errors in {file_path}\n\n")
 
@@ -254,12 +260,58 @@ def run_yq_in_threadpool(fpath: Path, yq_exec: Path, run_optional: bool = True) 
     return total_errors
 
 
+def _build_job_scoped_validation_yaml(cfg_file: Path, job_name: str) -> Path | None:
+    """Create temporary YAML used to validate only one selected job.
+
+    The scoped payload keeps top-level keys that are covered by required checks
+    (``name`` and ``on``), and narrows ``jobs`` to a single entry.
+    """
+    try:
+        loaded = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.error(f"Failed to parse {cfg_file} for --job validation: {exc}")
+        return None
+
+    if not isinstance(loaded, dict):
+        logger.error(f"{cfg_file}: root must be mapping to use --job")
+        return None
+
+    jobs = loaded.get("jobs")
+    if not isinstance(jobs, dict):
+        logger.error(f"{cfg_file}: top-level 'jobs' mapping is missing")
+        return None
+
+    if job_name not in jobs:
+        logger.error(f"{cfg_file}: job '{job_name}' not found under 'jobs'")
+        return None
+
+    payload: dict[str, object] = {"jobs": {job_name: jobs[job_name]}}
+    if "name" in loaded:
+        payload["name"] = loaded["name"]
+
+    # PyYAML may coerce unquoted `on:` key to boolean True.
+    if "on" in loaded:
+        payload["on"] = loaded["on"]
+    elif True in loaded:
+        payload["on"] = loaded[True]
+
+    temp_file = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yml", encoding="utf-8", delete=False
+    )
+    with temp_file as handle:
+        yaml.safe_dump(payload, handle, sort_keys=False, allow_unicode=True)
+
+    return Path(temp_file.name)
+
+
 def regular_validation(
-    cfg_files: Path,
+    cfg_files: Sequence[Path],
     yq_exe: Path,
     excluded_paths: list[Path],
     yml2dot_exe: Path,
     run_optional: bool = False,
+    job_name: str | None = None,
+    output_format: str = "svg"
 ) -> int:
     """Run the non-schema validation pipeline and diagram generation.
 
@@ -275,23 +327,68 @@ def regular_validation(
         0 when validation and diagram generation succeed.
         1 when validation fails or diagram generation fails.
     """
-    logger.info(f"Running validate config task with optional checks: {run_optional}")
-    res = validate_config(
-        yml_path=cfg_files,
-        yq_exec=yq_exe,
-        run_optional=run_optional,
-        excluded_paths=excluded_paths,
-    )
-    if res != 0:
-        logger.error("Validation failed")
+    if len(cfg_files) > 1:
+        logger.error(
+            f"regular validation requires exactly one config file, got {len(cfg_files)}")
         return 1
 
-    output_file = build_dot_scheme(
-        cfg_files=_collect_yaml_files(cfg_files, excluded_paths),
-        yml2dot_exec=yml2dot_exe,
-    )
+    if not cfg_files:
+        logger.error("regular validation requires at least one config file")
+        return 1
+
+    cfg_file = cfg_files[0]
+
+    logger.info(
+        f"Running validate config task with optional checks: {run_optional}")
+    yaml_files = _collect_yaml_files(cfg_file, excluded_paths)
+    temp_job_files: list[Path] = []
+
+    try:
+        if job_name:
+            logger.info(f"Job-scoped validation enabled for job: {job_name}")
+            for source_file in yaml_files:
+                temp_job_file = _build_job_scoped_validation_yaml(
+                    cfg_file=source_file, job_name=job_name
+                )
+                if temp_job_file is None:
+                    logger.error("Validation failed")
+                    return 1
+                temp_job_files.append(temp_job_file)
+
+            for temp_job_file in temp_job_files:
+                res = validate_config(
+                    yml_path=temp_job_file,
+                    yq_exec=yq_exe,
+                    run_optional=run_optional,
+                    excluded_paths=[],
+                )
+                if res != 0:
+                    logger.error("Validation failed")
+                    return 1
+        else:
+            res = validate_config(
+                yml_path=cfg_file,
+                yq_exec=yq_exe,
+                run_optional=run_optional,
+                excluded_paths=excluded_paths,
+            )
+            if res != 0:
+                logger.error("Validation failed")
+                return 1
+
+        output_file = build_dot_scheme(
+            cfg_files=yaml_files,
+            yml2dot_exec=yml2dot_exe,
+            job_name=job_name,
+            output_format=output_format
+        )
+    finally:
+        for temp_job_file in temp_job_files:
+            temp_job_file.unlink(missing_ok=True)
+
     if output_file is not None:
-        logger.info(f"Successfully built dot schema, check results: {output_file}")
+        logger.info(
+            f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         logger.info(f"{'-' * 60}")
         return 0

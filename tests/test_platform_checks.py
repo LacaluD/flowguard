@@ -6,7 +6,8 @@ from src import platform_checks
 
 
 def test_find_executable_prefers_path_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(platform_checks.shutil, "which", lambda _: "/usr/bin/yq")
+    monkeypatch.setattr(platform_checks.shutil, "which",
+                        lambda _: "/usr/bin/yq")
 
     result = platform_checks.find_executable("yq")
 
@@ -20,10 +21,14 @@ def test_find_executable_finds_binary_in_extra_paths(
     binary.write_text("", encoding="utf-8")
     monkeypatch.setattr(platform_checks.shutil, "which", lambda _: None)
 
-    def controlled_exists(path_obj: Path) -> bool:
+    def controlled_is_file(path_obj: Path) -> bool:
         return path_obj == binary
 
-    monkeypatch.setattr(Path, "exists", controlled_exists, raising=False)
+    def controlled_access(path_obj: Path, mode: int) -> bool:
+        return path_obj == binary and mode == platform_checks.os.X_OK
+
+    monkeypatch.setattr(Path, "is_file", controlled_is_file, raising=False)
+    monkeypatch.setattr(platform_checks.os, "access", controlled_access)
 
     result = platform_checks.find_executable("yq", extra_paths=[tmp_path])
 
@@ -34,7 +39,8 @@ def test_find_executable_returns_none_when_not_found(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(platform_checks.shutil, "which", lambda _: None)
-    monkeypatch.setattr(Path, "exists", lambda _: False, raising=False)
+    monkeypatch.setattr(Path, "is_file", lambda _: False, raising=False)
+    monkeypatch.setattr(platform_checks.os, "access", lambda *_: False)
 
     result = platform_checks.find_executable("missing_tool")
 
@@ -49,10 +55,14 @@ def test_find_executable_windows_default_directory_branch(
 
     target = Path("C:/") / "yq.exe"
 
-    def fake_exists(path_obj: Path) -> bool:
+    def fake_is_file(path_obj: Path) -> bool:
         return path_obj == target
 
-    monkeypatch.setattr(Path, "exists", fake_exists, raising=False)
+    def fake_access(path_obj: Path, mode: int) -> bool:
+        return path_obj == target and mode == platform_checks.os.X_OK
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file, raising=False)
+    monkeypatch.setattr(platform_checks.os, "access", fake_access)
 
     result = platform_checks.find_executable("yq.exe")
 

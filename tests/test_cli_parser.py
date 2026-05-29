@@ -35,6 +35,8 @@ def test_build_parser_success_flags_and_paths() -> None:
             "--files",
             "cfg.yml",
             "--difference",
+            "--job",
+            "build",
             "--output-format",
             "png",
             "--quiet",
@@ -49,6 +51,7 @@ def test_build_parser_success_flags_and_paths() -> None:
     assert args.schema == Path("schema.json")
     assert args.files == Path("cfg.yml")
     assert args.difference is True
+    assert args.job == "build"
     assert args.output_format == "png"
     assert args.quiet is True
     assert args.no_optional_checks is True
@@ -66,6 +69,7 @@ def test_build_parser_edge_defaults_without_args() -> None:
     assert args.files is None
     assert args.schema is None
     assert args.difference is False
+    assert args.job is None
     assert args.output_format == "svg"
     assert args.quiet is False
     assert args.no_optional_checks is False
@@ -77,7 +81,8 @@ def test_build_parser_edge_defaults_without_args() -> None:
 def test_build_parser_edge_short_aliases() -> None:
     parser = cli._build_parser()
 
-    args = parser.parse_args(["-f", "a.yml", "b.yml", "-diff", "-o", "dot", "-q"])
+    args = parser.parse_args(
+        ["-f", "a.yml", "b.yml", "-diff", "-o", "dot", "-q"])
 
     assert args.files == [Path("a.yml"), Path("b.yml")]
     assert args.difference is True

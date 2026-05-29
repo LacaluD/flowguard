@@ -29,15 +29,25 @@ def test_main_schema_branch_calls_validate_custom_pipeline(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser",
+                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable",
+                        lambda _: Path("/bin/tool"))
 
     called: dict[str, object] = {}
 
-    def fake_validate(*, cfg_files: Path, val_schema: Path, yml2dot_exe: Path) -> int:
+    def fake_validate(
+        *,
+        cfg_files: list[Path],
+        val_schema: Path,
+        yml2dot_exe: Path,
+        job_name: str | None = None,
+        output_format: str = "svg",
+    ) -> int:
         called["cfg_files"] = cfg_files
         called["val_schema"] = val_schema
         called["yml2dot_exe"] = yml2dot_exe
+        called["job_name"] = job_name
         return 0
 
     monkeypatch.setattr(app_main, "validate_custom_pipeline", fake_validate)
@@ -48,6 +58,7 @@ def test_main_schema_branch_calls_validate_custom_pipeline(
     )
 
     assert app_main.main() == 0
-    assert called["cfg_files"] == namespace.files
+    assert called["cfg_files"] == [namespace.files]
     assert called["val_schema"] == namespace.schema
     assert called["yml2dot_exe"] == Path("/bin/tool")
+    assert called["job_name"] is None

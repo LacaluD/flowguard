@@ -21,6 +21,7 @@ import subprocess
 import hashlib
 
 from loguru import logger
+from src.utils import _extract_job_view
 
 SUPPORTED_EXT = {".yml", ".yaml", ".json", ".toml"}
 DIFF_COLORS: dict[str, str] = {
@@ -31,6 +32,30 @@ DIFF_COLORS: dict[str, str] = {
 }
 
 OutputFormat = Literal["svg", "png", "dot"]
+
+
+def _safe_job_filename(job_name: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in job_name)
+
+
+def _build_output_paths(
+    sec_file: Path,
+    output_format: OutputFormat,
+    job_name: str | None = None,
+) -> tuple[Path, Path]:
+    """Build unique output paths for the DOT source and rendered artifact."""
+    if job_name:
+        job_suffix = _safe_job_filename(job_name)
+        dot_file = sec_file.with_name(
+            f"{sec_file.stem}.job-{job_suffix}.diff.dot")
+        output_file = sec_file.with_name(
+            f"{sec_file.stem}.job-{job_suffix}.diff.{output_format}"
+        )
+        return dot_file, output_file
+
+    dot_file = sec_file.with_name(f"{sec_file.stem}.diff.dot")
+    output_file = sec_file.with_name(f"{sec_file.stem}.diff.{output_format}")
+    return dot_file, output_file
 
 
 def _parse_yml(file_path: Path) -> Any:
@@ -195,7 +220,8 @@ def _build_dot(
     def node_id(key: str) -> str:
         """Build a stable DOT node identifier from a key path."""
         safe = key.replace(".", "_").replace("-", "_").replace(" ", "_")
-        suffix = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:6]
+        suffix = hashlib.md5(
+            key.encode(), usedforsecurity=False).hexdigest()[:6]
         return f"{safe}_{suffix}"
 
     def classify(key: str) -> str:
@@ -235,7 +261,8 @@ def _build_dot(
         val_nid = node_id(val_key)
         val_label = _escape_label(value)
         val_color = DIFF_COLORS[classify(full_key)]
-        lines.append(f'  {val_nid} [label="{val_label}" fillcolor="{val_color}"]')
+        lines.append(
+            f'  {val_nid} [label="{val_label}" fillcolor="{val_color}"]')
         lines.append(f"  {nid} -> {val_nid}")
 
     if isinstance(data, Mapping):
@@ -294,7 +321,11 @@ def _build_legend() -> list[str]:
 
 
 def get_cfg_difference(
-    fst_file: Path, sec_file: Path, dot_exec: Path, output_format: OutputFormat = "svg"
+    fst_file: Path,
+    sec_file: Path,
+    dot_exec: Path,
+    output_format: OutputFormat = "svg",
+    job_name: str | None = None,
 ) -> int:
     """Generate diff graph for two supported config files.
 
@@ -312,6 +343,26 @@ def get_cfg_difference(
     fst_data = _parse_file(fst_file)
     sec_data = _parse_file(sec_file)
 
+    # Fst must contain a job (otherwise there is nothing to compare), sec - optional (job could be deleted).
+    if job_name:
+        missing = []
+        try:
+            fst_data = _extract_job_view(
+                fst_data, job_name=job_name, file_path=fst_file)
+        except ValueError:
+            missing.append(str(fst_file))
+        try:
+            sec_data = _extract_job_view(
+                sec_data, job_name=job_name, file_path=sec_file)
+        except ValueError:
+            logger.warning(
+                f"job '{job_name}' not found in {sec_file}, treating as removed")
+            sec_data = {"jobs": {}}
+        if missing:
+            logger.error(
+                f"job '{job_name}' not found in: {', '.join(missing)}")
+            return 1
+
     fst_flat = _flatten(fst_data)
     sec_flat = _flatten(sec_data)
 
@@ -327,8 +378,11 @@ def get_cfg_difference(
     )
     logger.info("Successfully built dot vizualization")
 
-    dot_file = sec_file.with_suffix(".diff.dot")
-    output_file = sec_file.with_suffix(f".diff.{output_format}")
+    dot_file, output_file = _build_output_paths(
+        sec_file=sec_file,
+        output_format=output_format,
+        job_name=job_name,
+    )
 
     dot_file.write_text(dot_source, encoding="utf-8")
 
@@ -337,7 +391,8 @@ def get_cfg_difference(
         return 0
 
     result = subprocess.run(
-        [dot_exec, f"-T{output_format}", str(dot_file), "-o", str(output_file)],
+        [dot_exec, f"-T{output_format}",
+            str(dot_file), "-o", str(output_file)],
         capture_output=True,
         text=True,
         check=False,
@@ -359,6 +414,7 @@ def visualize_cfgs(
     dot_exec: Path,
     difference: bool = False,
     output_format: OutputFormat = "svg",
+    job_name: str | None = None,
 ) -> int:
     """Entrypoint for CLI execution.
 
@@ -385,5 +441,9 @@ def visualize_cfgs(
         return 1
 
     return get_cfg_difference(
-        files[0], files[1], output_format=output_format, dot_exec=dot_exec
+        files[0],
+        files[1],
+        output_format=output_format,
+        dot_exec=dot_exec,
+        job_name=job_name,
     )
