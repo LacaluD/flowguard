@@ -10,8 +10,7 @@ from pathlib import Path
 
 import pytest
 
-MODULE_PATH = Path(__file__).resolve(
-).parents[1] / "src" / "diff_visualizer.py"
+MODULE_PATH = Path(__file__).resolve().parents[1] / "src" / "diff_visualizer.py"
 _SPEC = importlib.util.spec_from_file_location("diff_visualizer", MODULE_PATH)
 assert _SPEC and _SPEC.loader
 
@@ -207,8 +206,7 @@ def test_get_cfg_difference_dot_writes_dot_file_without_graphviz(
     new_file.write_text("a: 2\n", encoding="utf-8")
 
     def fail_if_called(*args: object, **kwargs: object) -> None:
-        raise AssertionError(
-            "subprocess.run should not be called for dot output")
+        raise AssertionError("subprocess.run should not be called for dot output")
 
     monkeypatch.setattr(mod.subprocess, "run", fail_if_called)
 
@@ -291,8 +289,7 @@ def test_get_cfg_difference_with_toml_inputs_success(
     new_file.write_text("a = 2\n", encoding="utf-8")
 
     monkeypatch.setattr(
-        mod, "_parse_file", lambda path: {
-            "a": 1} if path == old_file else {"a": 2}
+        mod, "_parse_file", lambda path: {"a": 1} if path == old_file else {"a": 2}
     )
 
     def fake_run(
@@ -323,8 +320,7 @@ def test_visualize_cfgs_returns_zero_without_difference_flag() -> None:
 
 
 def test_visualize_cfgs_fails_when_file_count_not_equal_two() -> None:
-    rc_one = mod.visualize_cfgs(
-        [Path("a.yml")], dot_exec=Path("dot"), difference=True)
+    rc_one = mod.visualize_cfgs([Path("a.yml")], dot_exec=Path("dot"), difference=True)
     rc_three = mod.visualize_cfgs(
         [Path("a.yml"), Path("b.yml"), Path("c.yml")],
         dot_exec=Path("dot"),
@@ -393,8 +389,7 @@ def test_extract_job_view_returns_selected_job_and_name() -> None:
         "other": {"x": 1},
     }
 
-    selected = mod._extract_job_view(
-        data, job_name="build", file_path=Path("wf.yml"))
+    selected = mod._extract_job_view(data, job_name="build", file_path=Path("wf.yml"))
 
     assert selected == {
         "jobs": {"build": {"runs-on": "ubuntu-latest"}},
@@ -416,9 +411,11 @@ def test_get_cfg_difference_returns_one_when_job_missing(
     old_file = tmp_path / "old.yml"
     new_file = tmp_path / "new.yml"
     old_file.write_text(
-        "jobs:\n  build:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+        "jobs:\n  build:\n    runs-on: ubuntu-latest\n", encoding="utf-8"
+    )
     new_file.write_text(
-        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8"
+    )
 
     calls: list[list[str]] = []
 
@@ -456,13 +453,14 @@ def test_get_cfg_difference_returns_one_when_job_missing_in_first_file(
     old_file = tmp_path / "old.yml"
     new_file = tmp_path / "new.yml"
     old_file.write_text(
-        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8"
+    )
     new_file.write_text(
-        "jobs:\n  build:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+        "jobs:\n  build:\n    runs-on: ubuntu-latest\n", encoding="utf-8"
+    )
 
     def fail_if_called(*args: object, **kwargs: object) -> None:
-        raise AssertionError(
-            "subprocess.run must not run when first job is missing")
+        raise AssertionError("subprocess.run must not run when first job is missing")
 
     monkeypatch.setattr(mod.subprocess, "run", fail_if_called)
 

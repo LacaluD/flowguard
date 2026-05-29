@@ -23,8 +23,7 @@ def _load_schema(schema_file: Path) -> dict[str, Any]:
     """Load schema from JSON/YAML file and return mapping object."""
     schema_text = schema_file.read_text(encoding="utf-8")
     is_yaml_schema = schema_file.suffix.lower() in (".yml", ".yaml")
-    loaded = yaml.safe_load(
-        schema_text) if is_yaml_schema else json.loads(schema_text)
+    loaded = yaml.safe_load(schema_text) if is_yaml_schema else json.loads(schema_text)
 
     if not isinstance(loaded, dict):
         raise jsonschema.SchemaError("Schema root must be a JSON object")
@@ -40,8 +39,7 @@ def _validate_single_yaml(yaml_file: Path, schema: dict[str, Any]) -> int:
         logger.info(f"{yaml_file} is valid against schema")
         return 0
     except jsonschema.ValidationError as exc:
-        logger.error(
-            f"{yaml_file}: {exc.message} at {list(exc.absolute_path)}")
+        logger.error(f"{yaml_file}: {exc.message} at {list(exc.absolute_path)}")
         return 1
     except yaml.YAMLError as exc:
         logger.error(f"YAML parse error in {yaml_file}: {exc}")
@@ -65,8 +63,7 @@ def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
     try:
         yaml_files = _collect_yaml_files(yml_path)
         if not yaml_files:
-            logger.error(
-                f"No YAML files found for schema validation in '{yml_path}'")
+            logger.error(f"No YAML files found for schema validation in '{yml_path}'")
             return 1
 
         if not schema_file.exists():
@@ -108,7 +105,7 @@ def validate_custom_pipeline(
     val_schema: Path,
     yml2dot_exe: Path,
     job_name: str | None = None,
-    output_format: str = "svg"
+    output_format: str = "svg",
 ) -> int:
     """Run schema-based validation pipeline and then build diagrams.
 
@@ -123,7 +120,8 @@ def validate_custom_pipeline(
     """
     if len(cfg_files) > 1:
         logger.error(
-            f"custom validation requires exactly one config file, got {len(cfg_files)}")
+            f"custom validation requires exactly one config file, got {len(cfg_files)}"
+        )
         return 1
 
     if not cfg_files:
@@ -144,8 +142,7 @@ def validate_custom_pipeline(
         output_format=output_format,
     )
     if output_file is not None:
-        logger.info(
-            f"Successfully built dot schema, check results: {output_file}")
+        logger.info(f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         return 0
 

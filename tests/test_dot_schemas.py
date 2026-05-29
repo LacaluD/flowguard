@@ -25,8 +25,7 @@ def test_build_dot_scheme_returns_none_when_yml2dot_fails_with_stderr(
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
     monkeypatch.setattr(
-        dot_schemas.logger, "error", lambda message: errors.append(
-            str(message))
+        dot_schemas.logger, "error", lambda message: errors.append(str(message))
     )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
@@ -107,8 +106,7 @@ def test_build_dot_scheme_logs_dot_stderr_when_dot_fails(
     monkeypatch.setattr(dot_schemas.subprocess, "run", fake_run)
     errors: list[str] = []
     monkeypatch.setattr(
-        dot_schemas.logger, "error", lambda message: errors.append(
-            str(message))
+        dot_schemas.logger, "error", lambda message: errors.append(str(message))
     )
 
     result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"))
@@ -164,15 +162,14 @@ def test_build_dot_scheme_job_mode_returns_none_when_job_missing(
 ) -> None:
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text(
-        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n", encoding="utf-8"
+    )
 
     def fail_if_called(*_args, **_kwargs):
-        pytest.fail(
-            "subprocess.run must not be called when selected job is missing")
+        pytest.fail("subprocess.run must not be called when selected job is missing")
 
     monkeypatch.setattr(dot_schemas.subprocess, "run", fail_if_called)
 
-    result = dot_schemas.build_dot_scheme(
-        [yml_file], Path("yml2dot"), job_name="build")
+    result = dot_schemas.build_dot_scheme([yml_file], Path("yml2dot"), job_name="build")
 
     assert result is None

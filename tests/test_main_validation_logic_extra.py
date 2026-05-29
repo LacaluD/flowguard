@@ -40,8 +40,7 @@ def test_build_job_scoped_validation_yaml_returns_none_on_parse_error(
     monkeypatch.setattr(
         main_validation_logic.yaml,
         "safe_load",
-        lambda *_: (_ for _ in ()
-                    ).throw(main_validation_logic.yaml.YAMLError("bad")),
+        lambda *_: (_ for _ in ()).throw(main_validation_logic.yaml.YAMLError("bad")),
     )
 
     assert (
@@ -59,8 +58,7 @@ def test_build_job_scoped_validation_yaml_returns_none_for_non_mapping_root(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic.yaml,
-                        "safe_load", lambda *_: [1, 2, 3])
+    monkeypatch.setattr(main_validation_logic.yaml, "safe_load", lambda *_: [1, 2, 3])
 
     assert (
         main_validation_logic._build_job_scoped_validation_yaml(
@@ -77,8 +75,9 @@ def test_build_job_scoped_validation_yaml_returns_none_when_jobs_mapping_missing
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic.yaml,
-                        "safe_load", lambda *_: {"name": "ci"})
+    monkeypatch.setattr(
+        main_validation_logic.yaml, "safe_load", lambda *_: {"name": "ci"}
+    )
 
     assert (
         main_validation_logic._build_job_scoped_validation_yaml(
@@ -170,15 +169,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo build
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda *_: [yml_file])
-    monkeypatch.setattr(main_validation_logic,
-                        "validate_config", lambda **_: 1)
+    monkeypatch.setattr(
+        main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
+    )
+    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 1)
     monkeypatch.setattr(
         main_validation_logic,
         "build_dot_scheme",
@@ -206,8 +204,7 @@ def test_validate_config_read_text_error_returns_one(
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
     )
-    monkeypatch.setattr(main_validation_logic,
-                        "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(main_validation_logic, "check_for_empty_file", lambda _: 0)
 
     def raise_read_error(*args, **kwargs):
         raise OSError("cannot read")
@@ -215,8 +212,7 @@ def test_validate_config_read_text_error_returns_one(
     monkeypatch.setattr(Path, "read_text", raise_read_error, raising=False)
 
     assert (
-        main_validation_logic.validate_config(
-            tmp_path, Path("yq"), excluded_paths=[])
+        main_validation_logic.validate_config(tmp_path, Path("yq"), excluded_paths=[])
         == 1
     )
 
@@ -227,13 +223,11 @@ def test_regular_validation_returns_one_when_build_fails(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "validate_config", lambda **_: 0)
+    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 0)
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
     )
-    monkeypatch.setattr(main_validation_logic,
-                        "build_dot_scheme", lambda **_: None)
+    monkeypatch.setattr(main_validation_logic, "build_dot_scheme", lambda **_: None)
 
     assert (
         main_validation_logic.regular_validation(
@@ -252,8 +246,7 @@ def test_regular_validation_returns_zero_on_success(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "validate_config", lambda **_: 0)
+    monkeypatch.setattr(main_validation_logic, "validate_config", lambda **_: 0)
     monkeypatch.setattr(
         main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
     )
@@ -294,17 +287,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo deploy
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda *_: [yml_file])
+    monkeypatch.setattr(
+        main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
+    )
 
     captured: dict[str, object] = {}
 
-    def fake_validate_config(*, yml_path: Path, yq_exec: Path, excluded_paths, run_optional: bool = False):
+    def fake_validate_config(
+        *, yml_path: Path, yq_exec: Path, excluded_paths, run_optional: bool = False
+    ):
         payload = yaml.safe_load(yml_path.read_text(encoding="utf-8"))
         captured["validated_payload"] = payload
         captured["validated_path"] = yml_path
@@ -323,10 +318,10 @@ jobs:
         captured["dot_job_name"] = job_name
         return yml_file.with_name("wf.build.png")
 
-    monkeypatch.setattr(main_validation_logic,
-                        "validate_config", fake_validate_config)
-    monkeypatch.setattr(main_validation_logic,
-                        "build_dot_scheme", fake_build_dot_scheme)
+    monkeypatch.setattr(main_validation_logic, "validate_config", fake_validate_config)
+    monkeypatch.setattr(
+        main_validation_logic, "build_dot_scheme", fake_build_dot_scheme
+    )
 
     result = main_validation_logic.regular_validation(
         cfg_files=[yml_file],
@@ -371,25 +366,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo build
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(main_validation_logic,
-                        "_collect_yaml_files", lambda *_: [yml_file])
+    monkeypatch.setattr(
+        main_validation_logic, "_collect_yaml_files", lambda *_: [yml_file]
+    )
     monkeypatch.setattr(
         main_validation_logic,
         "validate_config",
         lambda **_: pytest.fail(
-            "validate_config must not run when selected job is missing"),
+            "validate_config must not run when selected job is missing"
+        ),
     )
 
     monkeypatch.setattr(
         main_validation_logic,
         "build_dot_scheme",
         lambda **_: pytest.fail(
-            "build_dot_scheme must not run when selected job is missing"),
+            "build_dot_scheme must not run when selected job is missing"
+        ),
     )
 
     result = main_validation_logic.regular_validation(

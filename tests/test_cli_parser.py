@@ -81,8 +81,7 @@ def test_build_parser_edge_defaults_without_args() -> None:
 def test_build_parser_edge_short_aliases() -> None:
     parser = cli._build_parser()
 
-    args = parser.parse_args(
-        ["-f", "a.yml", "b.yml", "-diff", "-o", "dot", "-q"])
+    args = parser.parse_args(["-f", "a.yml", "b.yml", "-diff", "-o", "dot", "-q"])
 
     assert args.files == [Path("a.yml"), Path("b.yml")]
     assert args.difference is True

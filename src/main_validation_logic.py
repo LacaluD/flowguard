@@ -67,8 +67,7 @@ def check_for_deprecated_keys(file_path: Path, content: str) -> int:
             continue
 
         if parsed_deprecated in found_refs:
-            logger.warning(
-                f"{file_path} uses deprecated action '{deprecated}'")
+            logger.warning(f"{file_path} uses deprecated action '{deprecated}'")
             issues += 1
 
     return issues
@@ -99,8 +98,7 @@ def run_yq(
         if expression != ".":
             if output in ("", "null", "false"):
                 if optional:
-                    logger.warning(
-                        f"{fpath}: {description} skipped (not present)")
+                    logger.warning(f"{fpath}: {description} skipped (not present)")
                     return 0
                 logger.error(f"{fpath}: {description} missing")
                 return 1
@@ -210,8 +208,7 @@ def validate_config(
         cfg_error_qty = total_errors - errors_before
         logger.info(f"{'=' * 60}")
         if cfg_error_qty > 0:
-            logger.warning(
-                f"Errors found in {file_path} - {cfg_error_qty}\n\n")
+            logger.warning(f"Errors found in {file_path} - {cfg_error_qty}\n\n")
         else:
             logger.success(f"Did not found errors in {file_path}\n\n")
 
@@ -311,7 +308,7 @@ def regular_validation(
     yml2dot_exe: Path,
     run_optional: bool = False,
     job_name: str | None = None,
-    output_format: str = "svg"
+    output_format: str = "svg",
 ) -> int:
     """Run the non-schema validation pipeline and diagram generation.
 
@@ -329,7 +326,8 @@ def regular_validation(
     """
     if len(cfg_files) > 1:
         logger.error(
-            f"regular validation requires exactly one config file, got {len(cfg_files)}")
+            f"regular validation requires exactly one config file, got {len(cfg_files)}"
+        )
         return 1
 
     if not cfg_files:
@@ -338,8 +336,7 @@ def regular_validation(
 
     cfg_file = cfg_files[0]
 
-    logger.info(
-        f"Running validate config task with optional checks: {run_optional}")
+    logger.info(f"Running validate config task with optional checks: {run_optional}")
     yaml_files = _collect_yaml_files(cfg_file, excluded_paths)
     temp_job_files: list[Path] = []
 
@@ -380,15 +377,14 @@ def regular_validation(
             cfg_files=yaml_files,
             yml2dot_exec=yml2dot_exe,
             job_name=job_name,
-            output_format=output_format
+            output_format=output_format,
         )
     finally:
         for temp_job_file in temp_job_files:
             temp_job_file.unlink(missing_ok=True)
 
     if output_file is not None:
-        logger.info(
-            f"Successfully built dot schema, check results: {output_file}")
+        logger.info(f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         logger.info(f"{'-' * 60}")
         return 0
