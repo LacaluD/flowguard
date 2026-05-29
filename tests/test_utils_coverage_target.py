@@ -28,6 +28,7 @@ class _FakePathObject:
 
 # _collect_yaml_files
 
+
 def test_collect_yaml_files_success_respects_excluded_dirs(tmp_path: Path) -> None:
     keep = tmp_path / "cfg.yml"
     excluded_dir = tmp_path / "ignored"
@@ -59,6 +60,7 @@ def test_collect_yaml_files_edge_existing_not_file_or_dir_exits(mocker) -> None:
 
 
 # _load_config_data
+
 
 def test_load_config_data_success_yaml(tmp_path: Path) -> None:
     cfg = tmp_path / "wf.yml"

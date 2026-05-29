@@ -123,7 +123,12 @@ def run_yq(
         logger.info(f"{fpath}: {description} OK")
         return 0
     except subprocess.TimeoutExpired as exc:
-        log_exception_short(logger, exc, prefix=f"yq timed out after {timeout}s on file: {fpath}", level="error")
+        log_exception_short(
+            logger,
+            exc,
+            prefix=f"yq timed out after {timeout}s on file: {fpath}",
+            level="error",
+        )
 
         return 1
     except subprocess.CalledProcessError as e:
@@ -315,7 +320,12 @@ def _build_job_scoped_validation_yaml(cfg_file: Path, job_name: str) -> Path | N
     try:
         loaded = _load_config_data(cfg_file)
     except Exception as exc:
-        log_exception_short(logger, exc, prefix=f"Failed to parse {cfg_file} for --job validation: {exc}", level="error")
+        log_exception_short(
+            logger,
+            exc,
+            prefix=f"Failed to parse {cfg_file} for --job validation: {exc}",
+            level="error",
+        )
         return None
 
     if not isinstance(loaded, dict):

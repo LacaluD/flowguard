@@ -8,8 +8,8 @@ import yaml
 
 from src import main_validation_logic as mvl
 
-
 # _materialize_yaml_for_validation
+
 
 def test_materialize_yaml_for_validation_success_writes_temp_yaml(
     monkeypatch: pytest.MonkeyPatch,
@@ -18,8 +18,7 @@ def test_materialize_yaml_for_validation_success_writes_temp_yaml(
     src_file = tmp_path / "config.json"
     src_file.write_text('{"name":"ci"}', encoding="utf-8")
 
-    monkeypatch.setattr(mvl, "_load_config_data", lambda _: {
-                        "name": "ci", "jobs": {}})
+    monkeypatch.setattr(mvl, "_load_config_data", lambda _: {"name": "ci", "jobs": {}})
 
     out = mvl._materialize_yaml_for_validation(src_file)
 
@@ -64,6 +63,7 @@ def test_materialize_yaml_for_validation_edge_allows_scalar_payload(
 
 # _normalize_action_ref
 
+
 def test_normalize_action_ref_success_strips_quotes_and_v() -> None:
     assert mvl._normalize_action_ref('"actions/checkout@v3"') == (
         "actions/checkout",
@@ -81,19 +81,21 @@ def test_normalize_action_ref_edge_empty_version_after_v_returns_none() -> None:
 
 # check_for_deprecated_keys
 
+
 def test_check_for_deprecated_keys_success_counts_hits(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(mvl, "DEPRECATED_ACTIONS", ["actions/checkout@v3"])
 
-    got = mvl.check_for_deprecated_keys(
-        tmp_path / "wf.yml", "uses: actions/checkout@3")
+    got = mvl.check_for_deprecated_keys(tmp_path / "wf.yml", "uses: actions/checkout@3")
 
     assert got == 1
 
 
-def test_check_for_deprecated_keys_failure_empty_content_is_zero(tmp_path: Path) -> None:
+def test_check_for_deprecated_keys_failure_empty_content_is_zero(
+    tmp_path: Path,
+) -> None:
     assert mvl.check_for_deprecated_keys(tmp_path / "wf.yml", "") == 0
 
 
@@ -112,6 +114,7 @@ def test_check_for_deprecated_keys_edge_ignores_invalid_deprecated_entries(
 
 # run_yq
 
+
 def test_run_yq_success_base_expression_returns_zero(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -123,7 +126,9 @@ def test_run_yq_success_base_expression_returns_zero(
 
     def fake_run(*args, **kwargs):
         assert kwargs["timeout"] == 7
-        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout="ok\n", stderr="")
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=0, stdout="ok\n", stderr=""
+        )
 
     monkeypatch.setattr(mvl.subprocess, "run", fake_run)
 
@@ -140,8 +145,7 @@ def test_run_yq_failure_called_process_error_logs_stderr(
     monkeypatch.setattr(mvl, "count_timeout", lambda **_: 5)
 
     def fake_run(*args, **kwargs):
-        raise subprocess.CalledProcessError(
-            returncode=1, cmd=args[0], stderr="boom")
+        raise subprocess.CalledProcessError(returncode=1, cmd=args[0], stderr="boom")
 
     monkeypatch.setattr(mvl.subprocess, "run", fake_run)
 
@@ -164,28 +168,31 @@ def test_run_yq_edge_optional_missing_field_returns_zero(
         ),
     )
 
-    assert mvl.run_yq(f, ".jobs[].needs", "optional",
-                      Path("yq"), optional=True) == 0
+    assert mvl.run_yq(f, ".jobs[].needs", "optional", Path("yq"), optional=True) == 0
 
 
 # check_indentation
 
+
 def test_check_indentation_success_clean_file_returns_zero(tmp_path: Path) -> None:
     f = tmp_path / "clean.yml"
-    f.write_text("name: ci\njobs:\n  build:\n    steps: []\n",
-                 encoding="utf-8")
+    f.write_text("name: ci\njobs:\n  build:\n    steps: []\n", encoding="utf-8")
 
     assert mvl.check_indentation(f) == 0
 
 
-def test_check_indentation_failure_mixed_tabs_spaces_counts_error(tmp_path: Path) -> None:
+def test_check_indentation_failure_mixed_tabs_spaces_counts_error(
+    tmp_path: Path,
+) -> None:
     f = tmp_path / "mixed.yml"
     f.write_text("jobs:\n  \tbuild:\n", encoding="utf-8")
 
     assert mvl.check_indentation(f) == 1
 
 
-def test_check_indentation_edge_tab_and_trailing_spaces_are_warnings_only(tmp_path: Path) -> None:
+def test_check_indentation_edge_tab_and_trailing_spaces_are_warnings_only(
+    tmp_path: Path,
+) -> None:
     f = tmp_path / "warn.yml"
     f.write_text("jobs:\n\tbuild:  \n", encoding="utf-8")
 
@@ -193,6 +200,7 @@ def test_check_indentation_edge_tab_and_trailing_spaces_are_warnings_only(tmp_pa
 
 
 # validate_config
+
 
 def test_validate_config_success_yaml_flow_returns_zero(
     monkeypatch: pytest.MonkeyPatch,
@@ -238,6 +246,7 @@ def test_validate_config_edge_json_conversion_exception_adds_error(
 
 # run_yq_in_threadpool
 
+
 def test_run_yq_in_threadpool_success_all_checks_zero(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -249,8 +258,9 @@ def test_run_yq_in_threadpool_success_all_checks_zero(
     monkeypatch.setattr(mvl, "OPTIONAL_CHECKS", [".jobs[].needs"])
     monkeypatch.setattr(mvl, "run_yq", lambda **_: 0)
 
-    assert mvl.run_yq_in_threadpool(
-        f, Path("yq"), fending=".json", run_optional=True) == 0
+    assert (
+        mvl.run_yq_in_threadpool(f, Path("yq"), fending=".json", run_optional=True) == 0
+    )
 
 
 def test_run_yq_in_threadpool_failure_accumulates_errors(
@@ -268,8 +278,10 @@ def test_run_yq_in_threadpool_failure_accumulates_errors(
 
     monkeypatch.setattr(mvl, "run_yq", fake_run_yq)
 
-    assert mvl.run_yq_in_threadpool(
-        f, Path("yq"), fending=".json", run_optional=False) == 1
+    assert (
+        mvl.run_yq_in_threadpool(f, Path("yq"), fending=".json", run_optional=False)
+        == 1
+    )
 
 
 def test_run_yq_in_threadpool_edge_skips_optional_when_disabled(
@@ -289,17 +301,20 @@ def test_run_yq_in_threadpool_edge_skips_optional_when_disabled(
 
     monkeypatch.setattr(mvl, "run_yq", fake_run_yq)
 
-    assert mvl.run_yq_in_threadpool(
-        f, Path("yq"), fending=".json", run_optional=False) == 0
+    assert (
+        mvl.run_yq_in_threadpool(f, Path("yq"), fending=".json", run_optional=False)
+        == 0
+    )
     assert seen == [".name"]
 
 
 # _build_job_scoped_validation_yaml
 
+
 def test_build_job_scoped_validation_yaml_success_with_on_key(tmp_path: Path) -> None:
     f = tmp_path / "wf.yml"
     f.write_text(
-        'name: CI\non:\n  push: {}\njobs:\n  build:\n    runs-on: ubuntu-latest\n',
+        "name: CI\non:\n  push: {}\njobs:\n  build:\n    runs-on: ubuntu-latest\n",
         encoding="utf-8",
     )
 
@@ -352,6 +367,7 @@ def test_build_job_scoped_validation_yaml_edge_uses_bool_true_as_on(
 
 # regular_validation
 
+
 def test_regular_validation_success_returns_zero(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -361,8 +377,7 @@ def test_regular_validation_success_returns_zero(
 
     monkeypatch.setattr(mvl, "_collect_yaml_files", lambda *_: [f])
     monkeypatch.setattr(mvl, "validate_config", lambda **_: 0)
-    monkeypatch.setattr(mvl, "build_dot_scheme", lambda **
-                        _: f.with_suffix(".svg"))
+    monkeypatch.setattr(mvl, "build_dot_scheme", lambda **_: f.with_suffix(".svg"))
 
     assert (
         mvl.regular_validation(
@@ -398,8 +413,7 @@ def test_regular_validation_edge_job_mode_failure_cleans_temp_files(
     temp_job.write_text("jobs:\n  build: {}\n", encoding="utf-8")
 
     monkeypatch.setattr(mvl, "_collect_yaml_files", lambda *_: [f])
-    monkeypatch.setattr(
-        mvl, "_build_job_scoped_validation_yaml", lambda **_: temp_job)
+    monkeypatch.setattr(mvl, "_build_job_scoped_validation_yaml", lambda **_: temp_job)
     monkeypatch.setattr(mvl, "validate_config", lambda **_: 1)
 
     assert (
