@@ -30,7 +30,7 @@ def _build_selected_job_yaml(cfg_file: Path, job_name: str) -> Path | None:
         loaded = yaml.safe_load(cfg_file.read_text(encoding="utf-8"))
         payload = _extract_job_view(loaded, job_name=job_name, file_path=cfg_file)
     except (yaml.YAMLError, ValueError) as exc:
-        logger.error(str(exc))
+        log_exception_short(logger, exc, prefix=f"Failed to extract job from {cfg_file}", level="error")
         return None
     tmp = tempfile.NamedTemporaryFile(
         mode="w", suffix=".yml", encoding="utf-8", delete=False
@@ -45,7 +45,7 @@ def _build_yaml_from_supported_config(cfg_file: Path) -> Path | None:
     try:
         loaded = _load_config_data(cfg_file)
     except Exception as exc:
-        logger.error(f"Failed to parse {cfg_file}: {exc}")
+        log_exception_short(logger, exc, prefix=f"Failed to parse {cfg_file}: {exc}", level="error")
         return None
     tmp = tempfile.NamedTemporaryFile(
         mode="w", suffix=".yml", encoding="utf-8", delete=False
@@ -141,8 +141,8 @@ def build_dot_scheme(
 
             logger.info(f"{f} -> {output_file} generated")
             last_output_file = output_file
-        except subprocess.TimeoutExpired:
-            logger.error(f"diagram generation timed out after {timeout}s on file: {f}")
+        except subprocess.TimeoutExpired as exc:
+            log_exception_short(logger, exc, prefix=f"diagram generation timed out after {timeout}s on file: {f}", level="error")
             return None
         except subprocess.CalledProcessError as e:
             log_exception_short(

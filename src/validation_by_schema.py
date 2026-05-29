@@ -16,6 +16,7 @@ from collections.abc import Sequence
 import yaml
 import jsonschema
 
+from src.logger import log_exception_short
 from src.utils import _collect_yaml_files, check_for_empty_file
 from src.dot_schemas import build_dot_scheme
 
@@ -53,19 +54,19 @@ def _validate_single_yaml(yaml_file: Path, schema: dict[str, Any]) -> int:
         logger.info(f"{yaml_file} is valid against schema")
         return 0
     except jsonschema.ValidationError as exc:
-        logger.error(f"{yaml_file}: {exc.message} at {list(exc.absolute_path)}")
+        log_exception_short(logger, exc, prefix=f"{yaml_file}: {exc.message} at {list(exc.absolute_path)}", level="error")
         return 1
     except yaml.YAMLError as exc:
-        logger.error(f"YAML parse error in {yaml_file}: {exc}")
+        log_exception_short(logger, exc, prefix=f"YAML parse error in {yaml_file}: {exc}", level="error")
         return 1
     except json.JSONDecodeError as exc:
-        logger.error(f"JSON parse error in {yaml_file}: {exc}")
+        log_exception_short(logger, exc, prefix=f"JSON parse error in {yaml_file}: {exc}", level="error")
         return 1
     except tomllib.TOMLDecodeError as exc:
-        logger.error(f"TOML parse error in {yaml_file}: {exc}")
+        log_exception_short(logger, exc, prefix=f"TOML parse error in {yaml_file}: {exc}", level="error")
         return 1
     except OSError as exc:
-        logger.error(f"Failed to read YAML file {yaml_file}: {exc}")
+        log_exception_short(logger, exc, prefix=f"Failed to read YAML file {yaml_file}: {exc}", level="error")
         return 1
 
 
@@ -104,19 +105,19 @@ def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
         return 0 if errors == 0 else 1
 
     except jsonschema.SchemaError as exc:
-        logger.error(f"Invalid schema: {exc.message}")
+        log_exception_short(logger, exc, prefix=f"Invalid schema: {exc.message}", level="error")
         return 1
     except json.JSONDecodeError as exc:
-        logger.error(f"Schema JSON parse error in {schema_file}: {exc}")
+        log_exception_short(logger, exc, prefix=f"Schema JSON parse error in {schema_file}: {exc}", level="error")
         return 1
     except yaml.YAMLError as exc:
-        logger.error(f"Schema YAML parse error in {schema_file}: {exc}")
+        log_exception_short(logger, exc, prefix=f"Schema YAML parse error in {schema_file}: {exc}", level="error")
         return 1
     except OSError as exc:
-        logger.error(f"Failed to read schema file {schema_file}: {exc}")
+        log_exception_short(logger, exc, prefix=f"Failed to read schema file {schema_file}: {exc}", level="error")
         return 1
     except Exception as exc:
-        logger.error(f"Unexpected error during schema validation: {exc}")
+        log_exception_short(logger, exc, prefix=f"Unexpected error during schema validation: {exc}", level="error")
         return 1
 
 

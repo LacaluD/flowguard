@@ -135,9 +135,12 @@ jobs:
         run: |
           mkdir -p docs
           set -o pipefail
-          mypy . --config-file configs/mypy.ini 2>&1 | tee docs/mypy-report.txt
+          mypy . --config-file configs/mypy.ini -v 2>docs/mypy-report-verbose.txt | tee docs/mypy-report.txt
+
+          printf '\nChecked files by mypy:\n'
+          sed -n "s/.*BuildSource(path='\([^']*\)'.*/\1/p" docs/mypy-report-verbose.txt \
+          | sort -u | tee docs/mypy-files.txt
         shell: bash
-        continue-on-error: false
 
       - name: Upload mypy report artifact
         if: always()

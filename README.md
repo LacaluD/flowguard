@@ -1,22 +1,18 @@
 # flowguard
 
-[![CI](https://img.shields.io/github/actions/workflow/status/LacaluD/YML-Validator-Scheme-converter/security_audit.yml?branch=main&label=CI)](https://github.com/LacaluD/flowguard/blob/main/.github/workflows/main.yml)
-[![Coverage](https://codecov.io/gh/LacaluD/YML-Validator-Scheme-converter/graph/badge.svg?branch=main)](https://codecov.io/gh/LacaluD/YML-Validator-Scheme-converter)
+[![CI](https://img.shields.io/github/actions/workflow/status/LacaluD/flowguard/main.yml?branch=main&label=CI)](https://github.com/LacaluD/flowguard/actions/workflows/main.yml)
+[![Coverage](https://codecov.io/gh/LacaluD/flowguard/graph/badge.svg?branch=main)](https://codecov.io/gh/LacaluD/flowguard)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-flowguard is a CLI tool for configuration validation and structure visualization.
+## flowguard is a CLI tool for configuration validation and structure visualization.
 
-It helps teams:
+### It helps teams:
 - validate YAML, JSON, and TOML config files in CI with predictable exit codes,
 - enforce required and optional checks via yq expressions,
 - validate against JSON Schema,
 - generate visual graphs from YAML configs and config diffs.
 
-Recent updates:
-- deprecated GitHub Actions checks now match action and version explicitly, so `@v1` does not falsely match `@v1.4.0`,
-- recursive YAML collection supports excluded directories such as `.venv`,
-- schema validation and YAML corner cases now have dedicated coverage across success, failure, and edge cases,
-- the test suite is kept aligned with the current CLI flags and pipeline behavior.
+### See [CHANGELOG.md](docs/CHANGELOG.md) for release history.
 
 ## What flowguard does
 
@@ -32,23 +28,23 @@ Validates files against JSON Schema to enforce domain rules and catch incompatib
 3. Visualization:
 Builds graph outputs from YAML configs and from config-to-config diffs to simplify review and debugging.
 
-In practice, flowguard is useful as:
+### In practice, flowguard is useful as:
 - a pre-commit or pre-push local validator,
 - a CI quality gate for pull requests,
 - a troubleshooting helper when changing workflows, pipelines, or deployment manifests.
 
-Key operational behavior:
+### Key operational behavior:
 - deterministic exit codes (0 success, 1 failure),
 - `--quiet` mode for cleaner CI logs,
 - separation of warning/error output and regular output,
 - automatic external binary discovery with optional recursive fallback in custom directories,
 - optional directory exclusions for broad repository scans via `--exclude-dir`.
 
-## Demo
+### **Standart run**
 
 ![flowguard demo](docs/assets/demo.gif)
 
-## Difference demo
+### Difference demo
 
 ![flowguard difference demo](docs/assets/demo_difference.gif)
 
@@ -81,8 +77,8 @@ External tools:
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/LacaluD/YML-Validator-Scheme-converter.git
-cd YML-Validator-Scheme-converter
+git clone https://github.com/LacaluD/flowguard.git
+cd flowguard
 ```
 
 ### 2. Create virtual environment
@@ -145,11 +141,11 @@ command -v dot
 Basic validation:
 
 ```bash
-python main.py --files demo/demo_small_v2.yml
+python main.py --files demo/yml_demo_small_v2.yml
 
 # JSON and TOML are also supported in regular mode
-python main.py --files demo/config.json
-python main.py --files demo/config.toml
+python main.py --files demo/json_demo_small_v2.json
+python main.py --files demo/toml_demo_small_v2.toml
 ```
 
 Directory validation:
@@ -161,13 +157,13 @@ python main.py --files .
 Validation with recursive binary fallback directory:
 
 ```bash
-python main.py --files . --exec-dir /path/to/tools
+python main.py --files . --exec-dir "$PWD"
 ```
 
 Schema validation pipeline:
 
 ```bash
-python main.py --files schema_examples/schema_example_valid.yml --schema schema_examples/schema_example.json
+python main.py --files schema_docs/schema_example_valid.yml --schema schema_docs/schema_example.json
 ```
 
 Exclude generated or local environment directories from a broad scan:
@@ -179,28 +175,28 @@ python main.py --files . --exclude-dir .venv .git node_modules
 Disable optional checks:
 
 ```bash
-python main.py --files demo/demo_small_v2.yml --no-optional-checks
+python main.py --files demo/yml_demo_small_v2.yml --no-optional-checks
 ```
 
 Difference visualization:
 
 ```bash
-python main.py --files demo/demo_small.yml demo/demo_small_v2.yml --difference --output-format svg
+python main.py --files demo/yml_demo_small_v1.yml demo/yml_demo_small_v2.yml --difference --output-format svg
 
 # render difference only for one job key
-python main.py --files .github/workflows/ci_old.yml .github/workflows/ci_new.yml --difference --job build --output-format svg
+python main.py --files .github/workflows/main.yml .github/workflows/main.yml --difference --job tests --output-format svg
 ```
 
 Per-job visualization for regular pipeline:
 
 ```bash
-python main.py --files .github/workflows/ci.yml --job build
+python main.py --files .github/workflows/main.yml --job tests
 ```
 
 Quiet mode:
 
 ```bash
-python main.py --quiet --files demo/demo_small_v2.yml
+python main.py --quiet --files demo/yml_demo_small_v2.yml
 ```
 
 Help commands:
@@ -220,31 +216,31 @@ This behavior is designed for CI-friendly pipeline integration.
 
 ## Logging
 
-flowguard uses loguru with three sinks:
+### flowguard uses loguru with three sinks:
 - stderr for warning and error logs
 - stdout for debug/info/success logs
 - rotating file logs in logs/main.log (configurable)
 
-Environment variables:
+### Environment variables:
 - LOG_LEVEL
 - LOG_FILE_LEVEL
 - EXTERNAL_LOG_LEVEL
 - LOG_DIR
 - LOG_FILE_NAME
 
-Example:
+### Example:
 
 ```bash
 export LOG_LEVEL=DEBUG
 export LOG_FILE_LEVEL=INFO
 export LOG_DIR=./logs
 export LOG_FILE_NAME=validator.log
-python main.py --files demo/demo_small_v2.yml
+python main.py --files demo/yml_demo_small_v2.yml
 ```
 
 ## Schema guide
 
-See [docs/schema_guide.md](docs/schema_guide.md) for writing and applying custom schemas.
+See [schema_docs/schema_guide.md](schema_docs/schema_guide.md) for writing and applying custom schemas.
 
 ## For contributors
 
@@ -258,31 +254,31 @@ Run all tests:
 python -m pytest -q -c configs/pytest.ini
 ```
 
-Current suite size:
+### Current suite size:
 
-The repository currently keeps the full suite at 191 tests.
+### The repository currently keeps the full suite at 275 tests.
 
-Run with coverage:
+#### Run with coverage:
 
 ```bash
 python -m coverage run -m pytest -q -c configs/pytest.ini
 python -m coverage report --fail-under=90
 ```
 
-Targeted module coverage checks:
+#### Targeted module coverage checks:
 
 ```bash
 python -m pytest -q -c configs/pytest.ini tests/test_validate_by_schema.py tests/test_yaml_corner_cases.py
 python -m pytest -q -c configs/pytest.ini --cov=src.validation_by_schema --cov-report=term-missing tests/test_validate_by_schema.py tests/test_yaml_corner_cases.py
 ```
 
-Run golden tests:
+#### Run golden tests:
 
 ```bash
 python -m pytest -q tests/test_golden.py -c configs/pytest.ini
 ```
 
-Update golden baselines:
+#### Update golden baselines:
 
 ```bash
 python -m pytest -q tests/test_golden.py -c configs/pytest.ini --update-golden
@@ -292,10 +288,15 @@ python -m pytest -q tests/test_golden.py -c configs/pytest.ini --update-golden
 
 | Message | Typical cause | Fix |
 |---|---|---|
-| '<path>' is neither a file nor directory | Wrong --files path | Check path and rerun |
-| No YAML files found | Empty folder or no .yml/.yaml files | Point --files to valid file/folder |
+| `'<path>' is neither a file nor directory` | Wrong --files path | Check path and rerun |
+| `'<path>' does not exist` | Wrong --files path or typo in path | Check the path and rerun |
+| `No config files found in '<path>'` | Empty folder or no supported config files | Point --files to a folder/file with .yml, .yaml, .json, or .toml |
+| `job '<name>' not found under 'jobs'` | Wrong job name passed to --job | Check job names in your config file |
+| `top-level 'jobs' mapping is missing` | Config has no jobs key | Ensure config has a top-level jobs mapping |
 | Not all required executables were found | Missing yq, yml2dot, or dot | Install missing binaries or pass --exec-dir |
-| Additional properties are not allowed (True was unexpected) | Unquoted on key parsed as boolean in YAML | Use "on" key in config/schema |
+| Schema file does not exist: <path> | Wrong --schema path | Check schema path and rerun |
+| regular validation requires exactly one config file, got N | Multiple paths passed to --files in regular mode | Pass one file/folder to --files or use --difference for two files |
+| Wrong file format! Both files must be .yml, .yaml, .json, or .toml | Unsupported extension in difference mode | Use supported formats for both input files |
 
 ## Project layout
 
@@ -312,6 +313,7 @@ flowguard
 │  ├─ logger.py
 │  ├─ main_validation_logic.py
 │  ├─ diff_visualizer.py
+│  ├─ dot_schemas.py
 │  ├─ validation_by_schema.py
 │  ├─ platform_checks.py
 │  └─ utils.py
@@ -320,31 +322,13 @@ flowguard
 ├─ docs/
 ├─ demo/
 ├─ .github/workflows/
-└─ schema_examples/
+└─ schema_docs/
 ```
 
 ## Status
 
-### Implemented:
-
-Fix orphaned nodes in diff graph and add JSON/TOML input support
-- Fixed orphaned removed nodes in _build_dot by tracking declared_nodes
-- Added ancestor resolution for removed keys without parents in graph
-- Extended input support to YAML, JSON, and TOML formats
-
-- Added exclude-dir argument
-- CI-friendly output and exit codes
-- JSON Schema validation
-- exact-version deprecated action detection
-- Batch mode and recursive search
-- excluded-directory scans for large repositories
-- Golden integration tests
-- Corner-case YAML tests (Unicode, BOM, CRLF, indentation)
-- Coverage threshold in CI
-
 ### Planned:
 
-- Additional output/reporting improvements
 - Refactor and Optimize
 
 ### After release

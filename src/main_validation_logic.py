@@ -122,8 +122,9 @@ def run_yq(
 
         logger.info(f"{fpath}: {description} OK")
         return 0
-    except subprocess.TimeoutExpired:
-        logger.error(f"yq timed out after {timeout}s on file: {fpath}")
+    except subprocess.TimeoutExpired as exc:
+        log_exception_short(logger, exc, prefix=f"yq timed out after {timeout}s on file: {fpath}", level="error")
+
         return 1
     except subprocess.CalledProcessError as e:
         log_exception_short(
@@ -314,7 +315,7 @@ def _build_job_scoped_validation_yaml(cfg_file: Path, job_name: str) -> Path | N
     try:
         loaded = _load_config_data(cfg_file)
     except Exception as exc:
-        logger.error(f"Failed to parse {cfg_file} for --job validation: {exc}")
+        log_exception_short(logger, exc, prefix=f"Failed to parse {cfg_file} for --job validation: {exc}", level="error")
         return None
 
     if not isinstance(loaded, dict):
@@ -408,7 +409,6 @@ def regular_validation(
                     excluded_paths=[],
                 )
                 if res != 0:
-                    logger.error("Validation failed")
                     return 1
         else:
             res = validate_config(
@@ -418,7 +418,6 @@ def regular_validation(
                 excluded_paths=excluded_paths,
             )
             if res != 0:
-                logger.error("Validation failed")
                 return 1
 
         output_file = build_dot_scheme(

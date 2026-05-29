@@ -36,17 +36,14 @@ logs/
 TODO.md
 PROJECT_GOAL.md
 *_cache
-_test*
 TEMP/
-
-*_test_*
-
 
 # Reports
 *[._-]reports/
 *[._-]report*
 coverage/
-*coverage*
+.coverage
+configs/coverage.json
 htmlcov/
 .mypy_cache/
 .pytest_cache/
