@@ -46,8 +46,7 @@ def _build_output_paths(
     """Build unique output paths for the DOT source and rendered artifact."""
     if job_name:
         job_suffix = _safe_job_filename(job_name)
-        dot_file = sec_file.with_name(
-            f"{sec_file.stem}.job-{job_suffix}.diff.dot")
+        dot_file = sec_file.with_name(f"{sec_file.stem}.job-{job_suffix}.diff.dot")
         output_file = sec_file.with_name(
             f"{sec_file.stem}.job-{job_suffix}.diff.{output_format}"
         )
@@ -221,8 +220,7 @@ def _build_dot(
     def node_id(key: str) -> str:
         """Build a stable DOT node identifier from a key path."""
         safe = key.replace(".", "_").replace("-", "_").replace(" ", "_")
-        suffix = hashlib.md5(
-            key.encode(), usedforsecurity=False).hexdigest()[:6]
+        suffix = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:6]
         return f"{safe}_{suffix}"
 
     def classify(key: str) -> str:
@@ -263,8 +261,7 @@ def _build_dot(
         val_nid = node_id(val_key)
         val_label = _escape_label(value)
         val_color = DIFF_COLORS[classify(full_key)]
-        lines.append(
-            f'  {val_nid} [label="{val_label}" fillcolor="{val_color}"]')
+        lines.append(f'  {val_nid} [label="{val_label}" fillcolor="{val_color}"]')
         lines.append(f"  {nid} -> {val_nid}")
 
     if isinstance(data, Mapping):
@@ -382,8 +379,7 @@ def get_cfg_difference(
             )
             sec_data = {"jobs": {}}
         if missing:
-            logger.error(
-                f"job '{job_name}' not found in: {', '.join(missing)}")
+            logger.error(f"job '{job_name}' not found in: {', '.join(missing)}")
             return 1
 
     fst_flat = _flatten(fst_data)
@@ -414,8 +410,7 @@ def get_cfg_difference(
         return 0
 
     result = subprocess.run(
-        [dot_exec, f"-T{output_format}",
-            str(dot_file), "-o", str(output_file)],
+        [dot_exec, f"-T{output_format}", str(dot_file), "-o", str(output_file)],
         capture_output=True,
         text=True,
         check=False,
