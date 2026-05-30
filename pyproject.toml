@@ -32,6 +32,9 @@ include = ["src*"]
 [tool.setuptools.dynamic]
 version = {attr = "version.__version__"}
 
+[tool.black]
+exclude = "version.py"
+
 [tool.ruff.lint]
 select = ["TID252"]  # Forbids relative imports
 

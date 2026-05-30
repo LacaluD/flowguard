@@ -156,30 +156,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: python:3.12-slim
-    permissions:
-      contents: write
     steps:
-      - name: Install git
-        run: |
-          apt-get update
-          apt-get install -y git
-
       - uses: actions/checkout@v6.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-          ref: main
-          fetch-depth: 0
-
-      - name: Trust repo for git
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Sync with origin/main
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git fetch origin main
-          git checkout main
-          git reset --hard origin/main
 
       - name: Install dependencies
         run: |
@@ -187,27 +165,10 @@ jobs:
           pip install --no-cache-dir ruff black
 
       - name: Run code formatting checks
+        shell: bash
         run: |
           ruff check .
-          if ! black --check .; then
-            echo "Code formatting issues found. Running 'black .' to fix them."
-            black .
-          fi
-        shell: bash
-
-      - name: Push formatting changes if any
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add .
-          if ! git diff --cached --quiet; then
-            git commit -m "Apply code formatting [skip ci]"
-            git push origin main
-          else
-            echo "No formatting changes to commit."
-          fi
+          black --check .
 
 
   versioning:
@@ -253,24 +214,14 @@ jobs:
           VERSION=$(python -c "from version import __version__; print(__version__)")
           BUILD_NUMBER=${GITHUB_RUN_NUMBER}
           COMMIT_SHA=$(git rev-parse --short HEAD)
-
-          echo "__version__ = '$VERSION'" > version.py
-          echo "__build__ = '$BUILD_NUMBER'" >> version.py
-          echo "__commit__ = '$COMMIT_SHA'" >> version.py
+          printf '__version__ = "%s"\n__build__ = "%s"\n__commit__ = "%s"\n' \
+          "$VERSION" "$BUILD_NUMBER" "$COMMIT_SHA" > version.py
 
       - name: Push version.py if changed
         if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          VERSION=$(python -c "from version import __version__; print(__version__)")
-          BUILD_NUMBER=${GITHUB_RUN_NUMBER}
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-
-          echo "__version__ = '$VERSION'" > version.py
-          echo "__build__ = '$BUILD_NUMBER'" >> version.py
-          echo "__commit__ = '$COMMIT_SHA'" >> version.py
 
           git add version.py
           if ! git diff --cached --quiet; then
@@ -317,8 +268,35 @@ jobs:
 
             ✅ Security checks have completed successfully!
 
-      - name: Send failure telegram message
-        if: ${{ contains(needs.*.result, 'failure') }}
+      - name: Check if reports exist
+        id: check_reports
+        run: |
+          if [ -f "./reports/all-reports.zip" ]; then
+            echo "has_reports=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_reports=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send failure telegram message with reports
+        if: ${{ contains(needs.*.result, 'failure') && steps.check_reports.outputs.has_reports == 'true' }}
+        uses: cbrgm/telegram-github-action@v1.4.0
+        with:
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          to: ${{ secrets.TG_CHAT_ID }}
+          media: ./reports/all-reports.zip
+          media-type: document
+          disable-web-page-preview: true
+          message: |
+            **Rep. Name:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+
+            Branch: `${{ github.ref_name }}`
+            Commit: [${{ github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            Author Name: ${{ github.actor }}
+
+            ❌ Security checks have failed!
+
+      - name: Send failure telegram message without reports
+        if: ${{ contains(needs.*.result, 'failure') && steps.check_reports.outputs.has_reports == 'false' }}
         uses: cbrgm/telegram-github-action@v1.4.0
         with:
           token: ${{ secrets.TG_BOT_TOKEN }}
