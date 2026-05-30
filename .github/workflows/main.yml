@@ -170,69 +170,8 @@ jobs:
           ruff check .
           black --check .
 
-
-  versioning:
-    needs: formatting
-    runs-on: ubuntu-latest
-    container:
-      image: python:3.12-slim
-    permissions:
-      contents: write
-    steps:
-      - name: Install git
-        run: |
-          apt-get update
-          apt-get install -y git
-
-      - uses: actions/checkout@v6.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-          ref: main
-          fetch-depth: 0
-
-      - name: Trust repo for git
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Sync with origin/main
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git fetch origin main
-          git checkout main
-          git reset --hard origin/main
-
-      - name: Generate build number and commit
-        run: |
-          BUILD_NUMBER=${GITHUB_RUN_NUMBER}
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-
-          echo "Build: $BUILD_NUMBER"
-          echo "Commit: $COMMIT_SHA"
-
-      - name: Write version.py
-        run: |
-          VERSION=$(python -c "from version import __version__; print(__version__)")
-          BUILD_NUMBER=${GITHUB_RUN_NUMBER}
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-          printf '__version__ = "%s"\n__build__ = "%s"\n__commit__ = "%s"\n' \
-          "$VERSION" "$BUILD_NUMBER" "$COMMIT_SHA" > version.py
-
-      - name: Push version.py if changed
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add version.py
-          if ! git diff --cached --quiet; then
-            git commit -m "Update version.py [skip ci]"
-            git push origin main
-          else
-            echo "No version changes to commit."
-          fi
-
   notify:
-    needs: [tests, security-audit, typecheck, formatting, versioning]
+    needs: [tests, security-audit, typecheck, formatting]
     if: always()
     runs-on: ubuntu-latest
     steps:
