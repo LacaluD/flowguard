@@ -8,8 +8,6 @@ import yaml
 
 from src import pipeline as mvl
 
-# _materialize_yaml_for_validation
-
 
 def test_materialize_yaml_for_validation_success_writes_temp_yaml(
     monkeypatch: pytest.MonkeyPatch,
@@ -263,12 +261,14 @@ def test_run_yq_in_threadpool_success_all_checks_zero(
 
     monkeypatch.setattr(mvl, "EXTENDED_CHECKS", [".name", ".jobs"])
     monkeypatch.setattr(mvl, "OPTIONAL_CHECKS", [".jobs[].needs"])
-    monkeypatch.setattr(mvl, "run_yq", lambda **_: 0)
+    monkeypatch.setattr(mvl.ValidationPipeline, "run_yq", lambda self, **_: 0)
 
-    assert (
-        mvl.run_yq_in_threadpool(
-            f, Path("yq"), fending=".json", run_optional=True) == 0
+    validator = mvl.ValidationPipeline(
+        yq_exe=Path("yq"),
+        excluded_paths=[],
+        run_optional=True,
     )
+    assert validator.run_yq_in_threadpool(fpath=f, fending=".json") == 0
 
 
 def test_run_yq_in_threadpool_failure_accumulates_errors(

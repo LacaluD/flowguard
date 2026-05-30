@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 from loguru import logger
 from typing import Any
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 import yaml
 
 SUPPORTED_CONFIG_EXTENSIONS = (".yml", ".yaml", ".json", ".toml")
@@ -136,7 +136,8 @@ def _extract_job_view(data: Any, job_name: str, file_path: Path) -> dict[str, An
         raise ValueError(f"{file_path}: top-level 'jobs' mapping is missing")
 
     if job_name not in jobs:
-        raise ValueError(f"{file_path}: job '{job_name}' not found under 'jobs'")
+        raise ValueError(
+            f"{file_path}: job '{job_name}' not found under 'jobs'")
 
     selected: dict[str, Any] = {"jobs": {job_name: jobs[job_name]}}
     if "name" in data:
@@ -156,7 +157,7 @@ def finalize_dot_pipeline(output_file: Path | None) -> int:
     return 1
 
 
-def ensure_single_cfg_file(cfg_files: list[Path], mode_name: str) -> Path | None:
+def ensure_single_cfg_file(cfg_files: Sequence[Path], mode_name: str) -> Path | None:
     if len(cfg_files) > 1:
         logger.error(
             f"{mode_name} requires exactly one config file, got {len(cfg_files)}"

@@ -290,13 +290,15 @@ jobs:
         with:
           name: all-reports
           path: ./reports
+        continue-on-error: true
 
       - name: Zip reports
         if: ${{ contains(needs.*.result, 'failure') }}
         run: |
           if ls reports/* 1> /dev/null 2>&1; then
-            zip -j reports/all-reports.zip reports/*.txt reports/*.json reports/*.xml || true
+            zip -j reports/all-reports.zip reports/*.txt reports/*.json reports/*.xml
           fi
+        continue-on-error: true
 
       - name: Send success telegram message
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
