@@ -45,6 +45,7 @@ coverage/
 .coverage
 configs/coverage.json
 docs/mypy-files.txt
+.github/workflow/main.svg
 htmlcov/
 .mypy_cache/
 .pytest_cache/
