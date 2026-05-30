@@ -44,9 +44,7 @@ def test_build_job_scoped_validation_yaml_returns_none_on_parse_error(
     )
 
     assert (
-        pipeline._build_job_scoped_validation_yaml(
-            cfg_file=yml_file, job_name="build"
-        )
+        pipeline._build_job_scoped_validation_yaml(cfg_file=yml_file, job_name="build")
         is None
     )
 
@@ -61,9 +59,7 @@ def test_build_job_scoped_validation_yaml_returns_none_for_non_mapping_root(
     monkeypatch.setattr(pipeline.yaml, "safe_load", lambda *_: [1, 2, 3])
 
     assert (
-        pipeline._build_job_scoped_validation_yaml(
-            cfg_file=yml_file, job_name="build"
-        )
+        pipeline._build_job_scoped_validation_yaml(cfg_file=yml_file, job_name="build")
         is None
     )
 
@@ -75,14 +71,10 @@ def test_build_job_scoped_validation_yaml_returns_none_when_jobs_mapping_missing
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(
-        pipeline.yaml, "safe_load", lambda *_: {"name": "ci"}
-    )
+    monkeypatch.setattr(pipeline.yaml, "safe_load", lambda *_: {"name": "ci"})
 
     assert (
-        pipeline._build_job_scoped_validation_yaml(
-            cfg_file=yml_file, job_name="build"
-        )
+        pipeline._build_job_scoped_validation_yaml(cfg_file=yml_file, job_name="build")
         is None
     )
 
@@ -101,9 +93,7 @@ def test_build_job_scoped_validation_yaml_returns_none_when_job_missing(
     )
 
     assert (
-        pipeline._build_job_scoped_validation_yaml(
-            cfg_file=yml_file, job_name="build"
-        )
+        pipeline._build_job_scoped_validation_yaml(cfg_file=yml_file, job_name="build")
         is None
     )
 
@@ -173,9 +163,7 @@ jobs:
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     validator = pipeline.ValidationPipeline(
         yq_exe=Path("yq"), excluded_paths=[], run_optional=False
     )
@@ -201,12 +189,9 @@ def test_regular_validation_supports_json_input_and_builds_diagram(
     tmp_path: Path,
 ) -> None:
     json_file = tmp_path / "wf.json"
-    json_file.write_text(
-        '{"name": "ci", "jobs": {"build": {}}}', encoding="utf-8")
+    json_file.write_text('{"name": "ci", "jobs": {"build": {}}}', encoding="utf-8")
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [json_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [json_file])
     validator = pipeline.ValidationPipeline(
         yq_exe=Path("yq"), excluded_paths=[], run_optional=False
     )
@@ -224,9 +209,7 @@ def test_regular_validation_supports_json_input_and_builds_diagram(
         captured["cfg_files"] = list(cfg_files)
         return json_file.with_suffix(".svg")
 
-    monkeypatch.setattr(
-        pipeline, "build_dot_scheme", fake_build_dot_scheme
-    )
+    monkeypatch.setattr(pipeline, "build_dot_scheme", fake_build_dot_scheme)
 
     result = validator.regular_validation(
         cfg_files=[json_file],
@@ -243,9 +226,7 @@ def test_validate_config_read_text_error_returns_one(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     monkeypatch.setattr(pipeline, "check_for_empty_file", lambda _: 0)
 
     def raise_read_error(*args, **kwargs):
@@ -253,10 +234,7 @@ def test_validate_config_read_text_error_returns_one(
 
     monkeypatch.setattr(Path, "read_text", raise_read_error, raising=False)
 
-    assert (
-        pipeline.validate_config(tmp_path, Path("yq"), excluded_paths=[])
-        == 1
-    )
+    assert pipeline.validate_config(tmp_path, Path("yq"), excluded_paths=[]) == 1
 
 
 def test_regular_validation_returns_one_when_build_fails(
@@ -266,9 +244,7 @@ def test_regular_validation_returns_one_when_build_fails(
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
     monkeypatch.setattr(pipeline, "validate_config", lambda **_: 0)
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     monkeypatch.setattr(pipeline, "build_dot_scheme", lambda **_: None)
 
     assert (
@@ -292,9 +268,7 @@ def test_regular_validation_returns_zero_on_success(
         yq_exe=Path("yq"), excluded_paths=[], run_optional=False
     )
     monkeypatch.setattr(validator, "validate_config", lambda **_: 0)
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     monkeypatch.setattr(
         pipeline,
         "build_dot_scheme",
@@ -334,9 +308,7 @@ jobs:
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     validator = pipeline.ValidationPipeline(
         yq_exe=Path("yq"), excluded_paths=[], run_optional=True
     )
@@ -363,9 +335,7 @@ jobs:
         return yml_file.with_name("wf.build.png")
 
     monkeypatch.setattr(validator, "validate_config", fake_validate_config)
-    monkeypatch.setattr(
-        pipeline, "build_dot_scheme", fake_build_dot_scheme
-    )
+    monkeypatch.setattr(pipeline, "build_dot_scheme", fake_build_dot_scheme)
 
     result = validator.regular_validation(
         cfg_files=[yml_file],
@@ -385,12 +355,9 @@ def test_validate_config_supports_json_by_converting_to_yaml_for_yq(
     tmp_path: Path,
 ) -> None:
     json_file = tmp_path / "wf.json"
-    json_file.write_text(
-        '{"name": "ci", "jobs": {"build": {}}}', encoding="utf-8")
+    json_file.write_text('{"name": "ci", "jobs": {"build": {}}}', encoding="utf-8")
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [json_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [json_file])
     monkeypatch.setattr(pipeline, "check_for_empty_file", lambda _: 0)
     validator = pipeline.ValidationPipeline(
         yq_exe=Path("yq"), excluded_paths=[], run_optional=False
@@ -416,9 +383,7 @@ def test_validate_config_supports_json_by_converting_to_yaml_for_yq(
 
     monkeypatch.setattr(validator, "run_yq", fake_run_yq)
     monkeypatch.setattr(validator, "run_yq_in_threadpool", fake_pool)
-    monkeypatch.setattr(
-        validator, "check_for_deprecated_keys", lambda *_: 0
-    )
+    monkeypatch.setattr(validator, "check_for_deprecated_keys", lambda *_: 0)
     monkeypatch.setattr(
         validator,
         "check_indentation",
@@ -438,9 +403,7 @@ def test_validate_config_supports_toml_by_converting_to_yaml_for_yq(
     toml_file = tmp_path / "wf.toml"
     toml_file.write_text('name = "ci"\n[jobs.build]\n', encoding="utf-8")
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [toml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [toml_file])
     monkeypatch.setattr(pipeline, "check_for_empty_file", lambda *_: 0)
     validator = pipeline.ValidationPipeline(
         yq_exe=Path("yq"), excluded_paths=[], run_optional=False
@@ -455,9 +418,7 @@ def test_validate_config_supports_toml_by_converting_to_yaml_for_yq(
         "run_yq_in_threadpool",
         lambda **kwargs: 0 if kwargs["fpath"].suffix == ".yml" else 1,
     )
-    monkeypatch.setattr(
-        validator, "check_for_deprecated_keys", lambda *_: 0
-    )
+    monkeypatch.setattr(validator, "check_for_deprecated_keys", lambda *_: 0)
     monkeypatch.setattr(
         validator,
         "check_indentation",
@@ -489,9 +450,7 @@ jobs:
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     monkeypatch.setattr(
         pipeline,
         "validate_config",

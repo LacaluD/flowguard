@@ -16,8 +16,7 @@ def test_materialize_yaml_for_validation_success_writes_temp_yaml(
     src_file = tmp_path / "config.json"
     src_file.write_text('{"name":"ci"}', encoding="utf-8")
 
-    monkeypatch.setattr(mvl, "_load_config_data", lambda _: {
-                        "name": "ci", "jobs": {}})
+    monkeypatch.setattr(mvl, "_load_config_data", lambda _: {"name": "ci", "jobs": {}})
 
     out = mvl._materialize_yaml_for_validation(src_file)
 
@@ -87,8 +86,7 @@ def test_check_for_deprecated_keys_success_counts_hits(
 ) -> None:
     monkeypatch.setattr(mvl, "DEPRECATED_ACTIONS", ["actions/checkout@v3"])
 
-    got = mvl.check_for_deprecated_keys(
-        tmp_path / "wf.yml", "uses: actions/checkout@3")
+    got = mvl.check_for_deprecated_keys(tmp_path / "wf.yml", "uses: actions/checkout@3")
 
     assert got == 1
 
@@ -145,8 +143,7 @@ def test_run_yq_failure_called_process_error_logs_stderr(
     monkeypatch.setattr(mvl, "count_timeout", lambda **_: 5)
 
     def fake_run(*args, **kwargs):
-        raise subprocess.CalledProcessError(
-            returncode=1, cmd=args[0], stderr="boom")
+        raise subprocess.CalledProcessError(returncode=1, cmd=args[0], stderr="boom")
 
     monkeypatch.setattr(mvl.subprocess, "run", fake_run)
 
@@ -169,8 +166,7 @@ def test_run_yq_edge_optional_missing_field_returns_zero(
         ),
     )
 
-    assert mvl.run_yq(f, ".jobs[].needs", "optional",
-                      Path("yq"), optional=True) == 0
+    assert mvl.run_yq(f, ".jobs[].needs", "optional", Path("yq"), optional=True) == 0
 
 
 # check_indentation
@@ -178,8 +174,7 @@ def test_run_yq_edge_optional_missing_field_returns_zero(
 
 def test_check_indentation_success_clean_file_returns_zero(tmp_path: Path) -> None:
     f = tmp_path / "clean.yml"
-    f.write_text("name: ci\njobs:\n  build:\n    steps: []\n",
-                 encoding="utf-8")
+    f.write_text("name: ci\njobs:\n  build:\n    steps: []\n", encoding="utf-8")
 
     assert mvl.check_indentation(f) == 0
 
@@ -211,8 +206,9 @@ def test_validate_config_success_yaml_flow_returns_zero(
 ) -> None:
     f = tmp_path / "wf.yml"
     f.write_text("name: ci\n", encoding="utf-8")
-    pipeline = mvl.ValidationPipeline(yq_exe=Path(
-        "yq"), excluded_paths=[], run_optional=False)
+    pipeline = mvl.ValidationPipeline(
+        yq_exe=Path("yq"), excluded_paths=[], run_optional=False
+    )
 
     monkeypatch.setattr(mvl, "_collect_yaml_files", lambda *_: [f])
     monkeypatch.setattr(mvl, "check_for_empty_file", lambda *_: 0)
@@ -277,8 +273,9 @@ def test_run_yq_in_threadpool_failure_accumulates_errors(
 ) -> None:
     f = tmp_path / "wf.yml"
     f.write_text("name: ci\n", encoding="utf-8")
-    pipeline = mvl.ValidationPipeline(yq_exe=Path(
-        "yq"), excluded_paths=[], run_optional=False)
+    pipeline = mvl.ValidationPipeline(
+        yq_exe=Path("yq"), excluded_paths=[], run_optional=False
+    )
 
     monkeypatch.setattr(mvl, "EXTENDED_CHECKS", ["ok", "bad"])
     monkeypatch.setattr(mvl, "OPTIONAL_CHECKS", [])
@@ -297,8 +294,9 @@ def test_run_yq_in_threadpool_edge_skips_optional_when_disabled(
 ) -> None:
     f = tmp_path / "wf.yml"
     f.write_text("name: ci\n", encoding="utf-8")
-    pipeline = mvl.ValidationPipeline(yq_exe=Path(
-        "yq"), excluded_paths=[], run_optional=False)
+    pipeline = mvl.ValidationPipeline(
+        yq_exe=Path("yq"), excluded_paths=[], run_optional=False
+    )
 
     monkeypatch.setattr(mvl, "EXTENDED_CHECKS", [".name"])
     monkeypatch.setattr(mvl, "OPTIONAL_CHECKS", [".optional"])
@@ -380,16 +378,15 @@ def test_regular_validation_success_returns_zero(
 ) -> None:
     f = tmp_path / "wf.yml"
     f.write_text("name: ci\n", encoding="utf-8")
-    pipeline = mvl.ValidationPipeline(yq_exe=Path(
-        "yq"), excluded_paths=[], run_optional=False)
+    pipeline = mvl.ValidationPipeline(
+        yq_exe=Path("yq"), excluded_paths=[], run_optional=False
+    )
 
     monkeypatch.setattr(mvl, "_collect_yaml_files", lambda *_: [f])
     monkeypatch.setattr(pipeline, "validate_config", lambda **_: 0)
-    monkeypatch.setattr(mvl, "build_dot_scheme", lambda **
-                        _: f.with_suffix(".svg"))
+    monkeypatch.setattr(mvl, "build_dot_scheme", lambda **_: f.with_suffix(".svg"))
 
-    assert pipeline.regular_validation(
-        cfg_files=[f], yml2dot_exe=Path("yml2dot")) == 0
+    assert pipeline.regular_validation(cfg_files=[f], yml2dot_exe=Path("yml2dot")) == 0
 
 
 def test_regular_validation_failure_empty_cfg_files_returns_one() -> None:
@@ -410,15 +407,17 @@ def test_regular_validation_edge_job_mode_failure_cleans_temp_files(
 ) -> None:
     f = tmp_path / "wf.yml"
     f.write_text("name: ci\njobs:\n  build: {}\n", encoding="utf-8")
-    pipeline = mvl.ValidationPipeline(yq_exe=Path(
-        "yq"), excluded_paths=[], run_optional=False)
+    pipeline = mvl.ValidationPipeline(
+        yq_exe=Path("yq"), excluded_paths=[], run_optional=False
+    )
 
     temp_job = tmp_path / "job-temp.yml"
     temp_job.write_text("jobs:\n  build: {}\n", encoding="utf-8")
 
     monkeypatch.setattr(mvl, "_collect_yaml_files", lambda *_: [f])
     monkeypatch.setattr(
-        pipeline, "_build_job_scoped_validation_yaml", lambda **_: temp_job)
+        pipeline, "_build_job_scoped_validation_yaml", lambda **_: temp_job
+    )
     monkeypatch.setattr(pipeline, "validate_config", lambda **_: 1)
 
     assert (

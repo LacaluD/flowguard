@@ -39,15 +39,12 @@ def test_find_yaml_files_with_directory_collects_yml_and_yaml(tmp_path: Path) ->
 
     result = pipeline._collect_yaml_files(tmp_path, excluded_dirs=[])
 
-    assert sorted(result) == sorted(
-        [yml_file, yaml_file, json_file, toml_file])
+    assert sorted(result) == sorted([yml_file, yaml_file, json_file, toml_file])
 
 
 def test_find_yaml_files_raises_system_exit_for_invalid_path(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
-        pipeline._collect_yaml_files(
-            tmp_path / "missing", excluded_dirs=[]
-        )
+        pipeline._collect_yaml_files(tmp_path / "missing", excluded_dirs=[])
 
 
 def test_check_for_empty_file_returns_one_for_empty_file(tmp_path: Path) -> None:
@@ -81,9 +78,7 @@ def test_check_for_empty_file_returns_one_on_os_error(
 def test_check_for_deprecated_keys_counts_multiple_hits(tmp_path: Path) -> None:
     content = "uses actions/setup-python@v3 and actions/checkout@v3"
 
-    result = pipeline.check_for_deprecated_keys(
-        tmp_path / "wf.yml", content
-    )
+    result = pipeline.check_for_deprecated_keys(tmp_path / "wf.yml", content)
 
     assert result == 2
 
@@ -100,9 +95,7 @@ def test_check_for_deprecated_keys_does_not_match_major_to_semver(
 
     content = "uses: cbrgm/telegram-github-action@v1.4.0"
 
-    result = pipeline.check_for_deprecated_keys(
-        tmp_path / "wf.yml", content
-    )
+    result = pipeline.check_for_deprecated_keys(tmp_path / "wf.yml", content)
 
     assert result == 0
 
@@ -119,9 +112,7 @@ def test_check_for_deprecated_keys_matches_equal_version_with_or_without_v(
 
     content = "uses: actions/checkout@3"
 
-    result = pipeline.check_for_deprecated_keys(
-        tmp_path / "wf.yml", content
-    )
+    result = pipeline.check_for_deprecated_keys(tmp_path / "wf.yml", content)
 
     assert result == 1
 
@@ -176,9 +167,7 @@ def test_run_yq_returns_zero_for_base_success(
 
     monkeypatch.setattr(pipeline.subprocess, "run", fake_run)
 
-    result = pipeline.run_yq(
-        yml_file, ".", "base syntax check", Path("yq")
-    )
+    result = pipeline.run_yq(yml_file, ".", "base syntax check", Path("yq"))
 
     assert result == 0
 
@@ -196,9 +185,7 @@ def test_run_yq_returns_one_for_missing_extended_field(
 
     monkeypatch.setattr(pipeline.subprocess, "run", fake_run)
 
-    result = pipeline.run_yq(
-        yml_file, ".jobs", "check '.jobs'", Path("yq")
-    )
+    result = pipeline.run_yq(yml_file, ".jobs", "check '.jobs'", Path("yq"))
 
     assert result == 1
 
@@ -236,17 +223,14 @@ def test_run_yq_returns_one_on_subprocess_error(
 
     monkeypatch.setattr(pipeline.subprocess, "run", raise_error)
 
-    result = pipeline.run_yq(
-        yml_file, ".", "base syntax check", Path("yq")
-    )
+    result = pipeline.run_yq(yml_file, ".", "base syntax check", Path("yq"))
 
     assert result == 1
 
 
 def test_check_indentation_returns_zero_for_clean_file(tmp_path: Path) -> None:
     yml_file = tmp_path / "clean.yml"
-    yml_file.write_text(
-        "name: ci\njobs:\n  build:\n    steps: []\n", encoding="utf-8")
+    yml_file.write_text("name: ci\njobs:\n  build:\n    steps: []\n", encoding="utf-8")
 
     assert pipeline.check_indentation(yml_file) == 0
 
@@ -274,9 +258,7 @@ def test_check_indentation_ignores_blank_lines(tmp_path: Path) -> None:
 
 def test_validate_config_raises_type_error_for_non_path() -> None:
     with pytest.raises(TypeError):
-        pipeline.validate_config(
-            "not_a_path", Path("yq"), excluded_paths=[]
-        )
+        pipeline.validate_config("not_a_path", Path("yq"), excluded_paths=[])
 
 
 def test_validate_config_returns_zero_when_no_yaml_found(
@@ -284,9 +266,7 @@ def test_validate_config_returns_zero_when_no_yaml_found(
 ) -> None:
     monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [])
 
-    result = pipeline.validate_config(
-        tmp_path, Path("yq"), excluded_paths=[]
-    )
+    result = pipeline.validate_config(tmp_path, Path("yq"), excluded_paths=[])
 
     assert result == 0
 
@@ -297,19 +277,13 @@ def test_validate_config_returns_one_when_any_error_found(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     monkeypatch.setattr(pipeline, "check_for_empty_file", lambda _: 0)
     monkeypatch.setattr(pipeline, "run_yq", lambda **_: 1)
-    monkeypatch.setattr(
-        pipeline, "check_for_deprecated_keys", lambda *_: 0
-    )
+    monkeypatch.setattr(pipeline, "check_for_deprecated_keys", lambda *_: 0)
     monkeypatch.setattr(pipeline, "check_indentation", lambda _: 0)
 
-    result = pipeline.validate_config(
-        tmp_path, Path("yq"), excluded_paths=[]
-    )
+    result = pipeline.validate_config(tmp_path, Path("yq"), excluded_paths=[])
 
     assert result == 1
 
@@ -323,15 +297,11 @@ def test_validate_config_returns_zero_on_success(
         yq_exe=Path("yq"), excluded_paths=[], run_optional=False
     )
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     monkeypatch.setattr(pipeline, "check_for_empty_file", lambda _: 0)
     monkeypatch.setattr(validator, "run_yq", lambda **_: 0)
     monkeypatch.setattr(validator, "run_yq_in_threadpool", lambda **_: 0)
-    monkeypatch.setattr(
-        validator, "check_for_deprecated_keys", lambda *_: 0
-    )
+    monkeypatch.setattr(validator, "check_for_deprecated_keys", lambda *_: 0)
     monkeypatch.setattr(validator, "check_indentation", lambda _: 0)
 
     result = validator.validate_config(tmp_path)
@@ -356,7 +326,11 @@ def test_run_yq_in_threadpool_includes_optional_checks_when_enabled(
 
     def fake_run_yq(*, fpath, expression, description):
         calls.append(
-            (expression, validator.run_optional and expression in pipeline.OPTIONAL_CHECKS))
+            (
+                expression,
+                validator.run_optional and expression in pipeline.OPTIONAL_CHECKS,
+            )
+        )
         return 0
 
     monkeypatch.setattr(validator, "run_yq", fake_run_yq)
@@ -378,9 +352,7 @@ def test_regular_validation_returns_one_when_validate_config_fails(
     yml_file = tmp_path / "wf.yml"
     yml_file.write_text("name: ci\n", encoding="utf-8")
 
-    monkeypatch.setattr(
-        pipeline, "_collect_yaml_files", lambda *_: [yml_file]
-    )
+    monkeypatch.setattr(pipeline, "_collect_yaml_files", lambda *_: [yml_file])
     monkeypatch.setattr(pipeline, "validate_config", lambda **_: 1)
     monkeypatch.setattr(
         pipeline,

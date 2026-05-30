@@ -28,8 +28,7 @@ def test_validate_single_yaml_handles_os_error(
 
     monkeypatch.setattr(Path, "read_text", raise_os_error, raising=False)
 
-    assert validation_by_schema._validate_single_yaml(
-        f, {"type": "object"}) == 1
+    assert validation_by_schema._validate_single_yaml(f, {"type": "object"}) == 1
 
 
 def test_validate_against_schema_handles_json_parse_error(tmp_path: Path) -> None:
@@ -38,8 +37,7 @@ def test_validate_against_schema_handles_json_parse_error(tmp_path: Path) -> Non
     schema_file.write_text("{", encoding="utf-8")
     yaml_file.write_text("name: CI\n", encoding="utf-8")
 
-    assert validation_by_schema.validate_against_schema(
-        yaml_file, schema_file) == 1
+    assert validation_by_schema.validate_against_schema(yaml_file, schema_file) == 1
 
 
 def test_validate_against_schema_handles_yaml_parse_error(tmp_path: Path) -> None:
@@ -48,8 +46,7 @@ def test_validate_against_schema_handles_yaml_parse_error(tmp_path: Path) -> Non
     schema_file.write_text("type: [", encoding="utf-8")
     yaml_file.write_text("name: CI\n", encoding="utf-8")
 
-    assert validation_by_schema.validate_against_schema(
-        yaml_file, schema_file) == 1
+    assert validation_by_schema.validate_against_schema(yaml_file, schema_file) == 1
 
 
 def test_validate_against_schema_returns_one_when_schema_file_missing(
@@ -59,8 +56,7 @@ def test_validate_against_schema_returns_one_when_schema_file_missing(
     yaml_file.write_text("name: CI\n", encoding="utf-8")
     missing_schema = tmp_path / "missing_schema.json"
 
-    assert validation_by_schema.validate_against_schema(
-        yaml_file, missing_schema) == 1
+    assert validation_by_schema.validate_against_schema(yaml_file, missing_schema) == 1
 
 
 def test_validate_against_schema_handles_schema_file_os_error(
@@ -74,11 +70,11 @@ def test_validate_against_schema_handles_schema_file_os_error(
     def raise_os_error(*args, **kwargs):
         raise OSError("cannot read schema")
 
-    monkeypatch.setattr(SchemaValidator, "_load_schema",
-                        lambda self, _: raise_os_error())
+    monkeypatch.setattr(
+        SchemaValidator, "_load_schema", lambda self, _: raise_os_error()
+    )
 
-    assert SchemaValidator(schema_file).validate_against_schema(
-        yml_path=yaml_file) == 1
+    assert SchemaValidator(schema_file).validate_against_schema(yml_path=yaml_file) == 1
 
 
 def test_validate_against_schema_handles_unexpected_exception(
@@ -95,8 +91,7 @@ def test_validate_against_schema_handles_unexpected_exception(
     monkeypatch.setattr(
         validation_by_schema, "_load_schema", lambda _: {"type": "object"}
     )
-    monkeypatch.setattr(validation_by_schema,
-                        "check_for_empty_file", lambda _: 0)
+    monkeypatch.setattr(validation_by_schema, "check_for_empty_file", lambda _: 0)
 
     def raise_unexpected(*args, **kwargs):
         raise RuntimeError("boom")
@@ -107,8 +102,7 @@ def test_validate_against_schema_handles_unexpected_exception(
         lambda self, *args, **kwargs: raise_unexpected(),
     )
 
-    assert SchemaValidator(schema_file).validate_against_schema(
-        yml_path=yaml_file) == 1
+    assert SchemaValidator(schema_file).validate_against_schema(yml_path=yaml_file) == 1
 
 
 def test_validate_custom_pipeline_returns_one_when_diagram_build_fails(
@@ -119,13 +113,11 @@ def test_validate_custom_pipeline_returns_one_when_diagram_build_fails(
     yml_file.write_text("name: ci\n", encoding="utf-8")
     schema_file.write_text(json.dumps({"type": "object"}), encoding="utf-8")
 
-    monkeypatch.setattr(validation_by_schema,
-                        "validate_against_schema", lambda **_: 0)
+    monkeypatch.setattr(validation_by_schema, "validate_against_schema", lambda **_: 0)
     monkeypatch.setattr(
         validation_by_schema, "_collect_yaml_files", lambda _: [yml_file]
     )
-    monkeypatch.setattr(validation_by_schema,
-                        "build_dot_scheme", lambda **_: None)
+    monkeypatch.setattr(validation_by_schema, "build_dot_scheme", lambda **_: None)
 
     assert (
         validation_by_schema.validate_custom_pipeline(
@@ -145,8 +137,7 @@ def test_validate_custom_pipeline_returns_one_when_schema_validation_fails(
     yml_file.write_text("name: ci\n", encoding="utf-8")
     schema_file.write_text("{}", encoding="utf-8")
 
-    monkeypatch.setattr(
-        SchemaValidator, "validate_against_schema", lambda self, **_: 1)
+    monkeypatch.setattr(SchemaValidator, "validate_against_schema", lambda self, **_: 1)
 
     assert (
         SchemaValidator(schema_file).validate_custom_pipeline(
@@ -165,8 +156,7 @@ def test_validate_custom_pipeline_returns_zero_on_success(
     yml_file.write_text("name: ci\n", encoding="utf-8")
     schema_file.write_text(json.dumps({"type": "object"}), encoding="utf-8")
 
-    monkeypatch.setattr(validation_by_schema,
-                        "validate_against_schema", lambda **_: 0)
+    monkeypatch.setattr(validation_by_schema, "validate_against_schema", lambda **_: 0)
     monkeypatch.setattr(
         validation_by_schema, "_collect_yaml_files", lambda _: [yml_file]
     )

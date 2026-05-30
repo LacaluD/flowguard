@@ -35,7 +35,9 @@ from loguru import logger
 
 
 class ValidationPipeline:
-    def __init__(self, yq_exe: Path, excluded_paths: list[Path], run_optional: bool = False):
+    def __init__(
+        self, yq_exe: Path, excluded_paths: list[Path], run_optional: bool = False
+    ):
         self.yq_exe = yq_exe
         self.excluded_paths = excluded_paths
         self.run_optional = run_optional
@@ -63,8 +65,7 @@ class ValidationPipeline:
             return None
 
         # Treat vX and X as equivalent labels, but keep full semantic parts.
-        normalized_version = version[1:] if version.startswith(
-            "v") else version
+        normalized_version = version[1:] if version.startswith("v") else version
         if not normalized_version:
             return None
 
@@ -91,17 +92,17 @@ class ValidationPipeline:
                 continue
 
             if parsed_deprecated in found_refs:
-                logger.warning(
-                    f"{file_path} uses deprecated action '{deprecated}'")
+                logger.warning(f"{file_path} uses deprecated action '{deprecated}'")
                 issues += 1
 
         return issues
 
-    def run_yq(self,
-               fpath: Path,
-               expression: str,
-               description: str,
-               ) -> int:
+    def run_yq(
+        self,
+        fpath: Path,
+        expression: str,
+        description: str,
+    ) -> int:
         """Run a yq expression against a YAML file and return 0 on success, 1 on error."""
         try:
             timeout = count_timeout(fpath=fpath, tool="yml2dot")
@@ -120,8 +121,7 @@ class ValidationPipeline:
             if expression != ".":
                 if output in ("", "null", "false"):
                     if self.run_optional:
-                        logger.warning(
-                            f"{fpath}: {description} skipped (not present)")
+                        logger.warning(f"{fpath}: {description} skipped (not present)")
                         return 0
                     logger.error(f"{fpath}: {description} missing")
                     return 1
@@ -171,8 +171,7 @@ class ValidationPipeline:
                     continue
 
                 if "\t" in indent:
-                    logger.warning(
-                        f"{file_path}: line {i} tab used (use spaces)")
+                    logger.warning(f"{file_path}: line {i} tab used (use spaces)")
                     continue
 
                 if indent and (len(indent) % INDENT_SIZE != 0):
@@ -185,9 +184,10 @@ class ValidationPipeline:
 
         return errors
 
-    def validate_config(self,
-                        yml_path: Path,
-                        ) -> TypeError | int:
+    def validate_config(
+        self,
+        yml_path: Path,
+    ) -> TypeError | int:
         """Validate config files and return 0 on success, 1 on any failure."""
         if not isinstance(yml_path, Path):
             raise TypeError("yml_directory is not proper Path object")
@@ -222,7 +222,8 @@ class ValidationPipeline:
             try:
                 if file_path.suffix.lower() in (".json", ".toml"):
                     temp_yaml_for_validation = self._materialize_yaml_for_validation(
-                        file_path)
+                        file_path
+                    )
                     validation_target = temp_yaml_for_validation
 
                 total_errors += self.run_yq(
@@ -255,11 +256,9 @@ class ValidationPipeline:
             cfg_error_qty = total_errors - errors_before
             logger.info(f"{'=' * 60}")
             if cfg_error_qty > 0:
-                logger.warning(
-                    f"Errors found in {file_path} - {cfg_error_qty}\n\n")
+                logger.warning(f"Errors found in {file_path} - {cfg_error_qty}\n\n")
             else:
-                logger.success(
-                    f"Errors found in {file_path} - {cfg_error_qty}\n\n")
+                logger.success(f"Errors found in {file_path} - {cfg_error_qty}\n\n")
 
         logger.info(f"{'=' * 60}")
         if total_errors > 0:
@@ -269,11 +268,10 @@ class ValidationPipeline:
         logger.info("Config files are valid")
         return 0
 
-    def run_yq_in_threadpool(self, fpath: Path, fending: str
-                             ) -> int:
+    def run_yq_in_threadpool(self, fpath: Path, fending: str) -> int:
         """
-            Run a yq expression against a config file in ThreadPoolExecutor with automaticly counted threads.
-            Return 0 on success, 1 on error.
+        Run a yq expression against a config file in ThreadPoolExecutor with automaticly counted threads.
+        Return 0 on success, 1 on error.
         """
         total_errors = 0
         max_workers = max(1, (os.cpu_count() or 4) // 4)
@@ -308,7 +306,9 @@ class ValidationPipeline:
 
         return total_errors
 
-    def _build_job_scoped_validation_yaml(self, cfg_file: Path, job_name: str) -> Path | None:
+    def _build_job_scoped_validation_yaml(
+        self, cfg_file: Path, job_name: str
+    ) -> Path | None:
         """Create temporary YAML used to validate only one selected job.
 
         The scoped payload keeps top-level keys that are covered by required checks
@@ -335,8 +335,7 @@ class ValidationPipeline:
             return None
 
         if job_name not in jobs:
-            logger.error(
-                f"{cfg_file}: job '{job_name}' not found under 'jobs'")
+            logger.error(f"{cfg_file}: job '{job_name}' not found under 'jobs'")
             return None
 
         payload: dict[str, object] = {"jobs": {job_name: jobs[job_name]}}
@@ -353,17 +352,17 @@ class ValidationPipeline:
             mode="w", suffix=".yml", encoding="utf-8", delete=False
         )
         with temp_file as handle:
-            yaml.safe_dump(payload, handle, sort_keys=False,
-                           allow_unicode=True)
+            yaml.safe_dump(payload, handle, sort_keys=False, allow_unicode=True)
 
         return Path(temp_file.name)
 
-    def regular_validation(self,
-                           cfg_files: Sequence[Path],
-                           yml2dot_exe: Path,
-                           job_name: str | None = None,
-                           output_format: str = "svg",
-                           ) -> int:
+    def regular_validation(
+        self,
+        cfg_files: Sequence[Path],
+        yml2dot_exe: Path,
+        job_name: str | None = None,
+        output_format: str = "svg",
+    ) -> int:
         """Run the non-schema validation pipeline and diagram generation.
 
         The pipeline validates YAML content with `yq`-based checks, then builds
@@ -378,19 +377,21 @@ class ValidationPipeline:
             0 when validation and diagram generation succeed.
             1 when validation fails or diagram generation fails.
         """
-        cfg_file = ensure_single_cfg_file(cfg_files=cfg_files, mode_name="Regular validation")
+        cfg_file = ensure_single_cfg_file(
+            cfg_files=cfg_files, mode_name="Regular validation"
+        )
         if cfg_file is None:
             return 1
 
         logger.info(
-            f"Running validate config task with optional checks: {self.run_optional}")
+            f"Running validate config task with optional checks: {self.run_optional}"
+        )
         yaml_files = _collect_yaml_files(cfg_file, self.excluded_paths)
         temp_job_files: list[Path] = []
 
         try:
             if job_name:
-                logger.info(
-                    f"Job-scoped validation enabled for job: {job_name}")
+                logger.info(f"Job-scoped validation enabled for job: {job_name}")
                 for source_file in yaml_files:
                     temp_job_file = self._build_job_scoped_validation_yaml(
                         cfg_file=source_file, job_name=job_name

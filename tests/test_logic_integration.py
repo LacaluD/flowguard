@@ -33,8 +33,7 @@ def test_validate_config_integration_success_with_mocked_yq(
 
     monkeypatch.setattr(pipeline.subprocess, "run", fake_run)
 
-    result = pipeline.ValidationPipeline(
-        Path("yq"), []).validate_config(tmp_path)
+    result = pipeline.ValidationPipeline(Path("yq"), []).validate_config(tmp_path)
 
     assert result == 0
 
@@ -52,7 +51,6 @@ def test_validate_config_integration_fails_on_yq_parse_error(
 
     monkeypatch.setattr(pipeline.subprocess, "run", fake_run)
 
-    result = pipeline.ValidationPipeline(
-        Path("yq"), []).validate_config(tmp_path)
+    result = pipeline.ValidationPipeline(Path("yq"), []).validate_config(tmp_path)
 
     assert result == 1

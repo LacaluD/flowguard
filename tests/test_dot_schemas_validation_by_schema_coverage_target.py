@@ -50,8 +50,7 @@ def test_build_selected_job_yaml_failure_on_yaml_parse_error(
 ) -> None:
     cfg = tmp_path / "wf.yml"
     cfg.write_text("name: CI\n", encoding="utf-8")
-    mocker.patch("src.dot_schemas.yaml.safe_load",
-                 side_effect=yaml.YAMLError("bad"))
+    mocker.patch("src.dot_schemas.yaml.safe_load", side_effect=yaml.YAMLError("bad"))
 
     result = dot_schemas._build_selected_job_yaml(cfg, "build")
 
@@ -64,8 +63,7 @@ def test_build_selected_job_yaml_edge_when_job_view_extraction_fails(
 ) -> None:
     cfg = tmp_path / "wf.yml"
     cfg.write_text("name: CI\njobs:\n  build: {}\n", encoding="utf-8")
-    mocker.patch("src.dot_schemas._extract_job_view",
-                 side_effect=ValueError("no job"))
+    mocker.patch("src.dot_schemas._extract_job_view", side_effect=ValueError("no job"))
 
     result = dot_schemas._build_selected_job_yaml(cfg, "build")
 
@@ -81,8 +79,7 @@ def test_build_yaml_from_supported_config_success_serializes_loaded_data(
 ) -> None:
     cfg = tmp_path / "wf.json"
     cfg.write_text('{"name":"CI"}', encoding="utf-8")
-    mocker.patch("src.dot_schemas._load_config_data",
-                 return_value={"name": "CI"})
+    mocker.patch("src.dot_schemas._load_config_data", return_value={"name": "CI"})
 
     out = dot_schemas._build_yaml_from_supported_config(cfg)
 
@@ -97,8 +94,7 @@ def test_build_yaml_from_supported_config_failure_returns_none_on_loader_error(
 ) -> None:
     cfg = tmp_path / "wf.toml"
     cfg.write_text('name = "CI"\n', encoding="utf-8")
-    mocker.patch("src.dot_schemas._load_config_data",
-                 side_effect=RuntimeError("boom"))
+    mocker.patch("src.dot_schemas._load_config_data", side_effect=RuntimeError("boom"))
 
     out = dot_schemas._build_yaml_from_supported_config(cfg)
 
@@ -152,8 +148,7 @@ def test_build_dot_scheme_failure_when_json_conversion_returns_none(
 ) -> None:
     cfg = tmp_path / "wf.json"
     cfg.write_text('{"name":"ci"}', encoding="utf-8")
-    mocker.patch(
-        "src.dot_schemas._build_yaml_from_supported_config", return_value=None)
+    mocker.patch("src.dot_schemas._build_yaml_from_supported_config", return_value=None)
 
     out = dot_schemas.build_dot_scheme([cfg], Path("yml2dot"))
 
@@ -175,8 +170,7 @@ def test_build_dot_scheme_edge_cleans_temp_input_when_job_build_fails(
     mocker.patch(
         "src.dot_schemas._build_yaml_from_supported_config", return_value=converted
     )
-    mocker.patch("src.dot_schemas._build_selected_job_yaml",
-                 return_value=selected)
+    mocker.patch("src.dot_schemas._build_selected_job_yaml", return_value=selected)
 
     def fake_run(cmd, *args, **kwargs):
         return subprocess.CompletedProcess(
@@ -185,8 +179,7 @@ def test_build_dot_scheme_edge_cleans_temp_input_when_job_build_fails(
 
     mocker.patch("src.dot_schemas.subprocess.run", side_effect=fake_run)
 
-    out = dot_schemas.build_dot_scheme(
-        [cfg], Path("yml2dot"), job_name="build")
+    out = dot_schemas.build_dot_scheme([cfg], Path("yml2dot"), job_name="build")
 
     assert out is None
     assert not converted.exists()
@@ -230,8 +223,7 @@ def test_validate_single_yaml_success_for_yaml_instance(tmp_path: Path) -> None:
     cfg = tmp_path / "wf.yml"
     cfg.write_text("name: CI\n", encoding="utf-8")
 
-    out = vbs._validate_single_yaml(
-        cfg, {"type": "object", "required": ["name"]})
+    out = vbs._validate_single_yaml(cfg, {"type": "object", "required": ["name"]})
 
     assert out == 0
 
@@ -275,15 +267,12 @@ def test_validate_against_schema_success_all_files_valid(
     cfg.write_text("name: CI\n", encoding="utf-8")
     schema.write_text(json.dumps({"type": "object"}), encoding="utf-8")
 
-    mocker.patch("src.validation_by_schema._collect_yaml_files",
-                 return_value=[cfg])
-    mocker.patch("src.validation_by_schema.check_for_empty_file",
-                 return_value=0)
+    mocker.patch("src.validation_by_schema._collect_yaml_files", return_value=[cfg])
+    mocker.patch("src.validation_by_schema.check_for_empty_file", return_value=0)
     mocker.patch(
         "src.validation_by_schema._load_schema", return_value={"type": "object"}
     )
-    mocker.patch("src.validation_by_schema._validate_single_yaml",
-                 return_value=0)
+    mocker.patch("src.validation_by_schema._validate_single_yaml", return_value=0)
 
     out = vbs.validate_against_schema(cfg, schema)
 
@@ -296,8 +285,7 @@ def test_validate_against_schema_failure_when_no_files_found(
 ) -> None:
     schema = tmp_path / "schema.json"
     schema.write_text(json.dumps({"type": "object"}), encoding="utf-8")
-    mocker.patch("src.validation_by_schema._collect_yaml_files",
-                 return_value=[])
+    mocker.patch("src.validation_by_schema._collect_yaml_files", return_value=[])
 
     out = vbs.validate_against_schema(tmp_path, schema)
 
@@ -313,10 +301,8 @@ def test_validate_against_schema_edge_skips_validation_after_empty_check_error(
     cfg.write_text("name: CI\n", encoding="utf-8")
     schema.write_text(json.dumps({"type": "object"}), encoding="utf-8")
 
-    mocker.patch("src.validation_by_schema._collect_yaml_files",
-                 return_value=[cfg])
-    mocker.patch("src.validation_by_schema.check_for_empty_file",
-                 return_value=1)
+    mocker.patch("src.validation_by_schema._collect_yaml_files", return_value=[cfg])
+    mocker.patch("src.validation_by_schema.check_for_empty_file", return_value=1)
     mocker.patch(
         "src.validation_by_schema._load_schema", return_value={"type": "object"}
     )
@@ -343,9 +329,10 @@ def test_validate_custom_pipeline_success_returns_zero(
     schema.write_text(json.dumps({"type": "object"}), encoding="utf-8")
 
     mocker.patch(
-        "src.validation_by_schema.SchemaValidator.validate_against_schema", return_value=0)
-    mocker.patch("src.validation_by_schema._collect_yaml_files",
-                 return_value=[cfg])
+        "src.validation_by_schema.SchemaValidator.validate_against_schema",
+        return_value=0,
+    )
+    mocker.patch("src.validation_by_schema._collect_yaml_files", return_value=[cfg])
     mocker.patch(
         "src.validation_by_schema.build_dot_scheme",
         return_value=cfg.with_suffix(".svg"),
@@ -368,7 +355,9 @@ def test_validate_custom_pipeline_failure_when_schema_validation_fails(
     schema.write_text(json.dumps({"type": "object"}), encoding="utf-8")
 
     mocker.patch(
-        "src.validation_by_schema.SchemaValidator.validate_against_schema", return_value=1)
+        "src.validation_by_schema.SchemaValidator.validate_against_schema",
+        return_value=1,
+    )
 
     out = SchemaValidator(schema).validate_custom_pipeline(
         cfg_files=[cfg], yml2dot_exe=Path("yml2dot")

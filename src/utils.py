@@ -15,8 +15,7 @@ SUPPORTED_CONFIG_EXTENSIONS = (".yml", ".yaml", ".json", ".toml")
 
 
 def _collect_yaml_files(
-    yml_directory: Path,
-    excluded_dirs: list[Path] | None = None
+    yml_directory: Path, excluded_dirs: list[Path] | None = None
 ) -> list[Path]:
     """Return supported config files from a file path or recursively from a directory.
 
@@ -136,8 +135,7 @@ def _extract_job_view(data: Any, job_name: str, file_path: Path) -> dict[str, An
         raise ValueError(f"{file_path}: top-level 'jobs' mapping is missing")
 
     if job_name not in jobs:
-        raise ValueError(
-            f"{file_path}: job '{job_name}' not found under 'jobs'")
+        raise ValueError(f"{file_path}: job '{job_name}' not found under 'jobs'")
 
     selected: dict[str, Any] = {"jobs": {job_name: jobs[job_name]}}
     if "name" in data:
@@ -147,8 +145,7 @@ def _extract_job_view(data: Any, job_name: str, file_path: Path) -> dict[str, An
 
 def finalize_dot_pipeline(output_file: Path | None) -> int:
     if output_file is not None:
-        logger.info(
-            f"Successfully built dot schema, check results: {output_file}")
+        logger.info(f"Successfully built dot schema, check results: {output_file}")
         logger.success("Pipeline finished successfully!")
         logger.info(f"{'-' * 60}")
         return 0

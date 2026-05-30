@@ -101,7 +101,9 @@ def _patch_pipeline_compat() -> None:
     pipeline_module.check_indentation = check_indentation
     pipeline_module.run_yq_in_threadpool = run_yq_in_threadpool
     pipeline_module.validate_config = validate_config
-    pipeline_module._build_job_scoped_validation_yaml = _build_job_scoped_validation_yaml
+    pipeline_module._build_job_scoped_validation_yaml = (
+        _build_job_scoped_validation_yaml
+    )
     pipeline_module.regular_validation = regular_validation
 
 
@@ -117,7 +119,9 @@ def _patch_schema_compat() -> None:
         )
 
     def validate_against_schema(yml_path: Path, schema_file: Path) -> int:
-        return SchemaValidator(schema_path=schema_file).validate_against_schema(yml_path)
+        return SchemaValidator(schema_path=schema_file).validate_against_schema(
+            yml_path
+        )
 
     def validate_custom_pipeline(
         *,

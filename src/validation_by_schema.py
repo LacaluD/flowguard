@@ -19,8 +19,11 @@ import jsonschema
 from src.logger import log_exception_short
 from src.dot_schemas import build_dot_scheme
 from src.utils import (
-    _collect_yaml_files, check_for_empty_file,
-    finalize_dot_pipeline, ensure_single_cfg_file)
+    _collect_yaml_files,
+    check_for_empty_file,
+    finalize_dot_pipeline,
+    ensure_single_cfg_file,
+)
 
 
 class SchemaValidator:
@@ -31,18 +34,20 @@ class SchemaValidator:
         """Load schema from JSON/YAML file and return mapping object."""
         schema_text = schema_file.read_text(encoding="utf-8")
         is_yaml_schema = schema_file.suffix.lower() in (".yml", ".yaml")
-        loaded = yaml.safe_load(schema_text) if is_yaml_schema else json.loads(schema_text)
+        loaded = (
+            yaml.safe_load(schema_text) if is_yaml_schema else json.loads(schema_text)
+        )
 
         if not isinstance(loaded, dict):
             raise jsonschema.SchemaError("Schema root must be a JSON object")
 
         return loaded
 
-
-    def _validate_single_yaml(self,
-            yaml_file: Path,
-            schema: dict,
-            ) -> int:
+    def _validate_single_yaml(
+        self,
+        yaml_file: Path,
+        schema: dict,
+    ) -> int:
         """Validate one config file against an already loaded schema."""
         try:
             text = yaml_file.read_text(encoding="utf-8")
@@ -72,17 +77,26 @@ class SchemaValidator:
             return 1
         except yaml.YAMLError as exc:
             log_exception_short(
-                logger, exc, prefix=f"YAML parse error in {yaml_file}: {exc}", level="error"
+                logger,
+                exc,
+                prefix=f"YAML parse error in {yaml_file}: {exc}",
+                level="error",
             )
             return 1
         except json.JSONDecodeError as exc:
             log_exception_short(
-                logger, exc, prefix=f"JSON parse error in {yaml_file}: {exc}", level="error"
+                logger,
+                exc,
+                prefix=f"JSON parse error in {yaml_file}: {exc}",
+                level="error",
             )
             return 1
         except tomllib.TOMLDecodeError as exc:
             log_exception_short(
-                logger, exc, prefix=f"TOML parse error in {yaml_file}: {exc}", level="error"
+                logger,
+                exc,
+                prefix=f"TOML parse error in {yaml_file}: {exc}",
+                level="error",
             )
             return 1
         except OSError as exc:
@@ -94,10 +108,11 @@ class SchemaValidator:
             )
             return 1
 
-
-    def validate_against_schema(self, yml_path: Path,
-                                # schema_file: Path
-                                ) -> int:
+    def validate_against_schema(
+        self,
+        yml_path: Path,
+        # schema_file: Path
+    ) -> int:
         """Validate config file(s) against JSON Schema.
 
         Args:
@@ -111,7 +126,9 @@ class SchemaValidator:
         try:
             yaml_files = _collect_yaml_files(yml_path)
             if not yaml_files:
-                logger.error(f"No config files found for schema validation in '{yml_path}'")
+                logger.error(
+                    f"No config files found for schema validation in '{yml_path}'"
+                )
                 return 1
 
             if not self.schema_path.exists():
@@ -169,8 +186,8 @@ class SchemaValidator:
             )
             return 1
 
-
-    def validate_custom_pipeline(self,
+    def validate_custom_pipeline(
+        self,
         cfg_files: Sequence[Path],
         yml2dot_exe: Path,
         job_name: str | None = None,
@@ -187,7 +204,9 @@ class SchemaValidator:
             0 when schema validation and diagram generation succeed.
             1 when schema validation fails or diagram generation fails.
         """
-        cfg_file = ensure_single_cfg_file(cfg_files=cfg_files, mode_name="Custom scheme validation")
+        cfg_file = ensure_single_cfg_file(
+            cfg_files=cfg_files, mode_name="Custom scheme validation"
+        )
         if cfg_file is None:
             return 1
 

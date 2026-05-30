@@ -29,10 +29,8 @@ def test_main_schema_branch_calls_validate_custom_pipeline(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser",
-                        lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable",
-                        lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
 
     called: dict[str, object] = {}
 
@@ -50,13 +48,13 @@ def test_main_schema_branch_calls_validate_custom_pipeline(
         called["job_name"] = job_name
         return 0
 
-    monkeypatch.setattr(app_main.SchemaValidator,
-                        "validate_custom_pipeline", fake_validate)
+    monkeypatch.setattr(
+        app_main.SchemaValidator, "validate_custom_pipeline", fake_validate
+    )
     monkeypatch.setattr(
         app_main.ValidationPipeline,
         "regular_validation",
-        lambda self, **_: pytest.fail(
-            "regular_validation must not run in schema mode"),
+        lambda self, **_: pytest.fail("regular_validation must not run in schema mode"),
     )
 
     assert app_main.main() == 0

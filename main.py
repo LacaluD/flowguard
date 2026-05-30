@@ -98,7 +98,9 @@ def main() -> int:
         logger.info("Launching validation process without schema")
         cfg_files = input_files if isinstance(input_files, list) else [input_files]
         validator = ValidationPipeline(
-            yq_exe=yq_exe, excluded_paths=args.exclude_dir, run_optional=not args.no_optional_checks
+            yq_exe=yq_exe,
+            excluded_paths=args.exclude_dir,
+            run_optional=not args.no_optional_checks,
         )
         return validator.regular_validation(
             cfg_files=cfg_files,
