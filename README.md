@@ -240,6 +240,17 @@ docker run --rm -v $(pwd):/data flowguard --files /data/ci_v1.yml /data/ci_v2.ym
 docker run --rm -v $(pwd):/data flowguard --files /data/ci.yml --job deploy
 ```
 
+**Note!**
+To avoid typing the full docker run command every time, add this alias to your shell config (~/.bashrc or ~/.zshrc):
+
+```bash
+alias flowguard='docker run --rm -v $(pwd):/data flowguard:latest'
+```
+After adding the alias, you can use flowguard directly:
+```bash
+flowguard --files ci.yml
+```
+
 ### Requirements
 
 No local dependencies required — graphviz, yq, and yml2dot are bundled in the image.
