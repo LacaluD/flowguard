@@ -1,12 +1,36 @@
 [project]
+name = "flowguard"
+dynamic = ["version"]
+
 dependencies = [
     "jsonschema>=4.0",
     "loguru>=0.7.3",
     "PyYAML>=6.0",
 ]
 
+[project.scripts]
+flowguard = "main:main"
+
 [project.optional-dependencies]
-dev = ["pytest", "pytest-mock", "coverage", "ruff", "black", "mypy", "bandit", "safety", "attrs", "python-dotenv", "pip-tools"]
+dev = [
+    "pytest", "pytest-mock", "pytest-cov", "coverage", "ruff",
+    "black", "mypy", "bandit", "safety", "attrs",
+    "python-dotenv", "pip-tools",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main", "version"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "version.__version__"}
 
 [tool.ruff.lint]
 select = ["TID252"]  # Forbids relative imports

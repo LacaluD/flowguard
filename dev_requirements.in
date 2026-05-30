@@ -1,0 +1,16 @@
+jsonschema
+loguru
+PyYAML
+
+pytest
+pytest-mock
+pytest-cov
+coverage
+ruff
+black
+mypy
+bandit
+safety
+attrs
+python-dotenv
+pip-tools

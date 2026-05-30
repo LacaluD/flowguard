@@ -49,7 +49,6 @@ htmlcov/
 .mypy_cache/
 .pytest_cache/
 
-
 # Other
 cython_debug/
 .pytype/
