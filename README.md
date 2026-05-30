@@ -214,6 +214,36 @@ python main.py --version
 
 This behavior is designed for CI-friendly pipeline integration.
 
+## Docker
+
+### Build
+
+```bash
+docker build -t flowguard .
+```
+
+### Usage
+
+Mount your config files into the container and pass the path inside:
+
+```bash
+# Validate a single file
+docker run --rm -v $(pwd):/data flowguard --files /data/ci.yml
+
+# Validate with schema
+docker run --rm -v $(pwd):/data flowguard --files /data/ci.yml --schema /data/schema.json
+
+# Diff two configs
+docker run --rm -v $(pwd):/data flowguard --files /data/ci_v1.yml /data/ci_v2.yml --difference
+
+# Per-job visualization
+docker run --rm -v $(pwd):/data flowguard --files /data/ci.yml --job deploy
+```
+
+### Requirements
+
+No local dependencies required — graphviz, yq, and yml2dot are bundled in the image.
+
 ## Logging
 
 ### flowguard uses loguru with three sinks:
