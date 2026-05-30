@@ -11,8 +11,8 @@ from typing import cast
 
 from version import __version__, __build__, __commit__
 from src.platform_checks import find_executable, find_executable_recursive
-from src.validation_by_schema import validate_custom_pipeline
-from src.main_validation_logic import regular_validation
+from src.validation_by_schema import SchemaValidator
+from src.pipeline import ValidationPipeline
 from src.diff_visualizer import OutputFormat, visualize_cfgs
 from src.cli_parser import (
     _build_parser,
@@ -87,9 +87,9 @@ def main() -> int:
     if args.schema:
         logger.info("Launching validation process with schema")
         cfg_files = input_files if isinstance(input_files, list) else [input_files]
-        return validate_custom_pipeline(
+        schema_validator = SchemaValidator(schema_path=args.schema)
+        return schema_validator.validate_custom_pipeline(
             cfg_files=cfg_files,
-            val_schema=args.schema,
             yml2dot_exe=yml2_dot_exe,
             job_name=selected_job,
             output_format=output_format,
@@ -97,12 +97,12 @@ def main() -> int:
     elif not args.schema and not difference:
         logger.info("Launching validation process without schema")
         cfg_files = input_files if isinstance(input_files, list) else [input_files]
-        return regular_validation(
+        validator = ValidationPipeline(
+            yq_exe=yq_exe, excluded_paths=args.exclude_dir, run_optional=not args.no_optional_checks
+        )
+        return validator.regular_validation(
             cfg_files=cfg_files,
-            yq_exe=yq_exe,
             yml2dot_exe=yml2_dot_exe,
-            run_optional=not args.no_optional_checks,
-            excluded_paths=args.exclude_dir,
             job_name=selected_job,
             output_format=output_format,
         )

@@ -60,7 +60,8 @@ def run_and_capture(yml_file: Path) -> str:
     with patch("sys.stdout", captured):
         with patch(
             "src.logger.MainLogger.init_logger",
-            side_effect=lambda quiet=False: _configure_test_logging(quiet=quiet),
+            side_effect=lambda quiet=False: _configure_test_logging(
+                quiet=quiet),
         ):
             with patch("main.find_executable", side_effect=lambda _: Path("/bin/tool")):
                 with patch(
@@ -68,7 +69,17 @@ def run_and_capture(yml_file: Path) -> str:
                     side_effect=lambda **_: Path("/bin/tool"),
                 ):
                     with patch(
-                        "main.regular_validation", side_effect=_fake_regular_validation
+                        "main.ValidationPipeline.regular_validation",
+                        autospec=True,
+                        side_effect=lambda self, **kwargs: _fake_regular_validation(
+                            cfg_files=kwargs["cfg_files"],
+                            yq_exe=self.yq_exe,
+                            excluded_paths=self.excluded_paths,
+                            yml2dot_exe=kwargs["yml2dot_exe"],
+                            run_optional=self.run_optional,
+                            job_name=kwargs.get("job_name"),
+                            output_format=kwargs.get("output_format", "svg"),
+                        ),
                     ):
                         with patch("sys.argv", ["main.py", "--files", str(yml_file)]):
                             main()

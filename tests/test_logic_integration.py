@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from src import main_validation_logic
+from src import pipeline
 
 
 def test_validate_config_integration_success_with_mocked_yq(
@@ -31,13 +31,10 @@ def test_validate_config_integration_success_with_mocked_yq(
             args=cmd, returncode=0, stdout=outputs.get(expression, "ok\n"), stderr=""
         )
 
-    monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
+    monkeypatch.setattr(pipeline.subprocess, "run", fake_run)
 
-    result = main_validation_logic.validate_config(
-        tmp_path,
-        Path("yq"),
-        excluded_paths=[],
-    )
+    result = pipeline.ValidationPipeline(
+        Path("yq"), []).validate_config(tmp_path)
 
     assert result == 0
 
@@ -53,12 +50,9 @@ def test_validate_config_integration_fails_on_yq_parse_error(
             returncode=1, cmd=cmd, stderr="yaml parse error"
         )
 
-    monkeypatch.setattr(main_validation_logic.subprocess, "run", fake_run)
+    monkeypatch.setattr(pipeline.subprocess, "run", fake_run)
 
-    result = main_validation_logic.validate_config(
-        tmp_path,
-        Path("yq"),
-        excluded_paths=[],
-    )
+    result = pipeline.ValidationPipeline(
+        Path("yq"), []).validate_config(tmp_path)
 
     assert result == 1

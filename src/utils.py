@@ -15,7 +15,8 @@ SUPPORTED_CONFIG_EXTENSIONS = (".yml", ".yaml", ".json", ".toml")
 
 
 def _collect_yaml_files(
-    yml_directory: Path, excluded_dirs: list[Path] | None = None
+    yml_directory: Path,
+    excluded_dirs: list[Path] | None = None
 ) -> list[Path]:
     """Return supported config files from a file path or recursively from a directory.
 
@@ -141,3 +142,29 @@ def _extract_job_view(data: Any, job_name: str, file_path: Path) -> dict[str, An
     if "name" in data:
         selected["name"] = data["name"]
     return selected
+
+
+def finalize_dot_pipeline(output_file: Path | None) -> int:
+    if output_file is not None:
+        logger.info(
+            f"Successfully built dot schema, check results: {output_file}")
+        logger.success("Pipeline finished successfully!")
+        logger.info(f"{'-' * 60}")
+        return 0
+
+    logger.warning("Pipeline finished with fail")
+    return 1
+
+
+def ensure_single_cfg_file(cfg_files: list[Path], mode_name: str) -> Path | None:
+    if len(cfg_files) > 1:
+        logger.error(
+            f"{mode_name} requires exactly one config file, got {len(cfg_files)}"
+        )
+        return None
+
+    if not cfg_files:
+        logger.error(f"{mode_name} requires at least one config file")
+        return None
+
+    return cfg_files[0]

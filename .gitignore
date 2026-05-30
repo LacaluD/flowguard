@@ -44,6 +44,7 @@ TEMP/
 coverage/
 .coverage
 configs/coverage.json
+docs/mypy-files.txt
 htmlcov/
 .mypy_cache/
 .pytest_cache/

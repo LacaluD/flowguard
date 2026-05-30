@@ -29,30 +29,34 @@ def test_main_schema_branch_calls_validate_custom_pipeline(
         no_optional_checks=False,
         output_format="svg",
     )
-    monkeypatch.setattr(app_main, "_build_parser", lambda: DummyParser(namespace))
-    monkeypatch.setattr(app_main, "find_executable", lambda _: Path("/bin/tool"))
+    monkeypatch.setattr(app_main, "_build_parser",
+                        lambda: DummyParser(namespace))
+    monkeypatch.setattr(app_main, "find_executable",
+                        lambda _: Path("/bin/tool"))
 
     called: dict[str, object] = {}
 
     def fake_validate(
+        self,
         *,
         cfg_files: list[Path],
-        val_schema: Path,
         yml2dot_exe: Path,
         job_name: str | None = None,
         output_format: str = "svg",
     ) -> int:
         called["cfg_files"] = cfg_files
-        called["val_schema"] = val_schema
+        called["val_schema"] = self.schema_path
         called["yml2dot_exe"] = yml2dot_exe
         called["job_name"] = job_name
         return 0
 
-    monkeypatch.setattr(app_main, "validate_custom_pipeline", fake_validate)
+    monkeypatch.setattr(app_main.SchemaValidator,
+                        "validate_custom_pipeline", fake_validate)
     monkeypatch.setattr(
-        app_main,
+        app_main.ValidationPipeline,
         "regular_validation",
-        lambda **_: pytest.fail("regular_validation must not run in schema mode"),
+        lambda self, **_: pytest.fail(
+            "regular_validation must not run in schema mode"),
     )
 
     assert app_main.main() == 0
