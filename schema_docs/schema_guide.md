@@ -1,6 +1,6 @@
 ### How to write your own schema
 
-Use [schema_examples/schema_example.json](schema_examples/schema_example.json), [schema_examples/schema_example.yml](schema_examples/schema_example.yml), and [schema_examples/schema_example_valid.yml](schema_examples/schema_example_valid.yml) as a baseline.
+Use [schema_example.json](schema_example.json), [schema_example.yml](schema_example.yml), and [schema_example_valid.yml](schema_example_valid.yml) as a baseline.
 
 ### Core recommendations
 
@@ -80,11 +80,11 @@ Example:
 
 ### Repository demo pair
 
-- YAML config: `demo/demo_small.yml`
+- YAML config: `demo/yml_demo_small_v2.yml`
 - Custom schema: `demo/demo_small_schema.json`
 
 Validate locally:
 
 ```bash
-python main.py --files demo/demo_small.yml --schema demo/demo_small_schema.json
+python main.py --files demo/yml_demo_small_v2.yml --schema demo/demo_small_schema.json
 ```

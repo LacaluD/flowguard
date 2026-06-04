@@ -1,66 +1,68 @@
-## Repository contents
+# Contributing to flowguard
 
-### Root files
+Thank you for contributing to flowguard.
 
-| File | Purpose |
-|---|---|
-| [../main.py](../main.py) | CLI entry point that parses arguments, discovers binaries, and dispatches the validation or visualization pipeline. |
-| [../version.py](../version.py) | Build metadata used for startup logging and release info. |
-| [../pyproject.toml](../pyproject.toml) | Project metadata, dependency declarations, and tooling configuration. |
-| [../requirements.in](../requirements.in) | High-level dependency list for the runtime environment. |
-| [../requirements.txt](../requirements.txt) | Pinned dependency set used for reproducible installs. |
-| [../LICENSE](../LICENSE) | MIT license text for the project. |
-| [../README.md](../README.md) | Main project documentation and usage guide. |
-| [../TODO.md](../TODO.md) | Roadmap, priorities, and planned follow-up work. |
-| [../_test.py](../_test.py) | Local helper script kept in the root for quick manual experiments. |
+## Prerequisites
 
-### docs/
+- Python 3.10+
+- Optional but recommended for local CLI features: `yq`, `yml2dot`, and `dot` (Graphviz)
 
-| File | Purpose |
-|---|---|
-| [schema_guide.md](schema_guide.md) | Guide for writing and applying custom JSON Schema files. |
-| [bandit-report.txt](bandit-report.txt) | Bandit security scan output. |
-| [coverage-report.txt](coverage-report.txt) | Coverage summary captured in CI or local runs. |
-| [mypy-report.txt](mypy-report.txt) | mypy type-check report. |
-| [safety-report.txt](safety-report.txt) | Safety dependency audit output. |
-| [assets/demo.gif](assets/demo.gif) | Demo animation used on the project page. |
+## Local setup
 
-### demo/
+```bash
+git clone https://github.com/LacaluD/flowguard.git
+cd flowguard
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install ".[dev]"
+```
 
-| File | Purpose |
-|---|---|
-| [../demo/demo_small.yml](../demo/demo_small.yml) | Small YAML sample used for basic validation demos. |
-| [../demo/demo_small_v2.yml](../demo/demo_small_v2.yml) | Second sample workflow used for comparisons and diff visualization. |
-| [../demo/demo_small_schema.json](../demo/demo_small_schema.json) | Schema example paired with the demo workflows. |
-| [../demo/demo_small.png](../demo/demo_small.png) | Rendered graph for the base demo config. |
-| [../demo/demo_small_v2.png](../demo/demo_small_v2.png) | Rendered graph for the second demo config. |
-| [../demo/demo_small.diff.svg](../demo/demo_small.diff.svg) | Config diff visualization for the demo pair. |
-| [../demo/demo_small_v2.diff.png](../demo/demo_small_v2.diff.png) | Rendered diff output for the second demo file. |
-| [../demo/demo_small_v2.job-deploy.diff.png](../demo/demo_small_v2.job-deploy.diff.png) | Job-scoped diff output for the `deploy` job. |
+## Run checks before opening PR
 
-### configs/
+### Tests
 
-| File | Purpose |
-|---|---|
-| [../configs/pytest.ini](../configs/pytest.ini) | pytest configuration and test discovery settings. |
-| [../configs/mypy.ini](../configs/mypy.ini) | mypy configuration used for static type checking. |
-| [../configs/bandit.yml](../configs/bandit.yml) | Bandit security scan configuration. |
-| [../configs/coverage.json](../configs/coverage.json) | Coverage data artifact used by the pipeline. |
+```bash
+python -m pytest -q -c configs/pytest.ini
+```
 
-### schema_docs/
+### Coverage
 
-| File | Purpose |
-|---|---|
-| [../schema_docs/schema_guide.md](../schema_docs/schema_guide.md) | Reference guide for authoring and validating custom schemas. |
-| [../schema_docs/schema_example.json](../schema_docs/schema_example.json) | Example JSON Schema definition used as a starting point. |
-| [../schema_docs/schema_example.yml](../schema_docs/schema_example.yml) | Example YAML schema representation mirroring the JSON example. |
-| [../schema_docs/schema_example_valid.yml](../schema_docs/schema_example_valid.yml) | Valid YAML config that satisfies the example schema. |
-| [../schema_docs/schema_example_valid.png](../schema_docs/schema_example_valid.png) | Rendered visualization for the valid schema example config. |
+```bash
+python -m coverage run -m pytest -q -c configs/pytest.ini
+python -m coverage report --fail-under=90
+```
 
-### .github/workflows/
+### Lint and type checks
 
-| File | Purpose |
-|---|---|
-| [../.github/workflows/main.yml](../.github/workflows/main.yml) | Main GitHub Actions workflow used to run checks and automation for the repository. |
-| [../.github/workflows/main.svg](../.github/workflows/main.svg) | Rendered graph snapshot for the workflow definition. |
-| [../.github/workflows/main.png](../.github/workflows/main.png) | PNG rendering of the workflow graph for documentation or inspection. |
+```bash
+python -m mypy -p src --config-file configs/mypy.ini
+python -m bandit -c configs/bandit.yml -r main.py src
+```
+
+## Branch and commit workflow
+
+1. Create a topic branch from `main`.
+2. Keep changes focused and small.
+3. Add or update tests for behavioral changes.
+4. Update docs when CLI behavior or examples change.
+5. Open a PR with a clear summary and testing notes.
+
+## Documentation expectations
+
+- Keep examples runnable against current repository files.
+- Keep CLI options in docs aligned with `src/cli_parser.py`.
+- Prefer concise, operational wording.
+
+## Release checklist
+
+1. Run the full test suite and verify all tests pass.
+2. Run coverage and confirm the threshold (`>= 90%`) is met.
+3. Run type and security checks (`mypy`, `bandit`) with no new issues.
+4. Verify CLI examples from `README.md` still work with current flags.
+5. Confirm Docker image builds and runs basic validation successfully.
+6. Update `docs/CHANGELOG.md` for all user-visible changes.
+
+## Release notes
+
+For user-visible changes, add an entry to [CHANGELOG.md](CHANGELOG.md).

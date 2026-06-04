@@ -40,7 +40,12 @@ Builds graph outputs from YAML configs and from config-to-config diffs to simpli
 - automatic external binary discovery with optional recursive fallback in custom directories,
 - optional directory exclusions for broad repository scans via `--exclude-dir`.
 
-### **Standart run**
+Links to upstream dependencies
+- [Graphviz](https://github.com/mhansen/graphviz)
+- [yml2dot](https://github.com/lucasepe/yml2dot)
+- [yq](https://github.com/mikefarah/yq)
+
+### **Standard run**
 
 ![flowguard demo](docs/assets/demo.gif)
 
@@ -285,7 +290,7 @@ See [schema_docs/schema_guide.md](schema_docs/schema_guide.md) for writing and a
 
 ## For contributors
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) developer documentation
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for contributor documentation.
 
 ## Testing
 
@@ -295,9 +300,9 @@ Run all tests:
 python -m pytest -q -c configs/pytest.ini
 ```
 
-### Current suite size:
+### Current suite size
 
-### The repository currently keeps the full suite at 275 tests.
+The repository currently keeps the full suite at 275 tests.
 
 #### Run with coverage:
 
@@ -352,7 +357,7 @@ flowguard
 │  ├─ cli_parser.py
 │  ├─ constants.py
 │  ├─ logger.py
-│  ├─ main_validation_logic.py
+│  ├─ pipeline.py
 │  ├─ diff_visualizer.py
 │  ├─ dot_schemas.py
 │  ├─ validation_by_schema.py
