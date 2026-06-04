@@ -212,6 +212,22 @@ python main.py --description
 python main.py --version
 ```
 
+Run with make commands
+
+All make commands are documented in [makecommands](docs/MAKEFILE.md)
+
+Regular run:
+
+```bash
+make run ARGS="--files schema_docs/schema_example_valid.yml --schema schema_docs/schema_example.json"
+```
+
+Before creating PR:
+
+```bash
+make ci
+```
+
 ## Exit codes
 
 - 0: success

@@ -1,5 +1,11 @@
 run:
-	python main.py
+	python main.py $(ARGS)
+
+install:
+	pip install -r requirements.txt
+
+install-dev:
+	pip install -r dev_requirements.txt
 
 docker-build:
 	docker build -t flowguard:latest .
@@ -15,12 +21,6 @@ docker-rm:
 
 docker-clean: docker-stop docker-rm
 	docker rmi flowguard:latest
-
-install:
-	pip install -r requirements.txt
-
-install-dev:
-	pip install -r dev_requirements.txt
 
 tests:
 	python -m coverage run -m pytest -v -c configs/pytest.ini
