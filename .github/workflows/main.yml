@@ -172,7 +172,7 @@ jobs:
           black --check .
 
   notify:
-    needs: [tests, security-audit, typecheck, formatting]
+    needs: [tests, security-audit, typecheck, formatting, dependency-review]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -180,7 +180,6 @@ jobs:
         if: ${{ contains(needs.*.result, 'failure') }}
         uses: actions/download-artifact@v8.0.0
         with:
-          name: all-reports
           path: ./reports
         continue-on-error: true
 
@@ -203,7 +202,7 @@ jobs:
             **Rep. Name:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
 
             Branch: `${{ github.ref_name }}`
-            Commit: [${{ github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            Commit: [${{ github.event_name == 'pull_request' && github.event.pull_request.title || github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
             Author Name: ${{ github.actor }}
 
             ✅ Security checks have completed successfully!
@@ -230,7 +229,7 @@ jobs:
             **Rep. Name:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
 
             Branch: `${{ github.ref_name }}`
-            Commit: [${{ github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            Commit: [${{ github.event_name == 'pull_request' && github.event.pull_request.title || github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
             Author Name: ${{ github.actor }}
 
             ❌ Security checks have failed!
@@ -241,14 +240,12 @@ jobs:
         with:
           token: ${{ secrets.TG_BOT_TOKEN }}
           to: ${{ secrets.TG_CHAT_ID }}
-          media: ./reports/all-reports.zip
-          media-type: document
           disable-web-page-preview: true
           message: |
             **Rep. Name:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
 
             Branch: `${{ github.ref_name }}`
-            Commit: [${{ github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            Commit: [${{ github.event_name == 'pull_request' && github.event.pull_request.title || github.event.head_commit.message }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
             Author Name: ${{ github.actor }}
 
             ❌ Security checks have failed!
