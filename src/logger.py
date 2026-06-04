@@ -53,7 +53,7 @@ def log_exception_short(
     """Log a compact exception message with optional traceback tail.
 
     Args:
-        log: Standard library logger instance.
+        log: Standart library logger instance.
         exc: Exception instance to format.
         prefix: Optional text prefix shown before exception details.
         level: Log method name (e.g. "error", "warning", "info").

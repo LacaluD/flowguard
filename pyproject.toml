@@ -33,7 +33,13 @@ include = ["src*"]
 version = {attr = "version.__version__"}
 
 [tool.black]
-exclude = "version.py"
+exclude = '''
+/(
+    \.venv
+  | version\.py
+  | src/tests
+)/
+'''
 
 [tool.ruff.lint]
 select = ["TID252"]  # Forbids relative imports

@@ -54,5 +54,11 @@ WORKDIR /app
 # Install project as editable package pip install --no-cache-dir setuptools && \
 RUN pip install --no-cache-dir -e .
 
+# Creating non-root user
+RUN useradd -m appuser && chown -R appuser:appuser /app
+
+# Starting container as non-root user
+USER appuser
+
 # Set entrypoint
 ENTRYPOINT ["flowguard"]
