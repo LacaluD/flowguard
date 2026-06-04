@@ -67,7 +67,7 @@ Links to upstream dependencies
 ## Requirements
 
 Python:
-- Python 3.10+
+- Python 3.11+
 - PyYAML
 - jsonschema
 - loguru
